@@ -1,0 +1,8 @@
+# NAME APT DNF ZYPPER NPM GEM PIP SRC
+# package = The name of the package to be installed with this package manager
+# ! = Special instructions
+# > = Use a secondary package manager (NPM, Gem, Pip, ...)
+# S = Build from source
+# 0 = Not available
+clang clang clang clang 0 0 0
+ternjs > > > ternjs 0 0 0 !
