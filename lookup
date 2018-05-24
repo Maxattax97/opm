@@ -1,8 +1,19 @@
+# NAME;apt,zypper,dnf,pacman,portage,slackpkg,pkg,nix,apk;npm,pip,gem,cargo,go,cabal;flatpak,snap,appimage;source;DESCRIPTION
+# Use pkgs.org to find names
 # NAME APT DNF ZYPPER NPM GEM PIP SRC
 # package = The name of the package to be installed with this package manager
 # ! = Special instructions
 # > = Use a secondary package manager (NPM, Gem, Pip, ...)
-# S = Build from source
-# 0 = Not available
-clang clang clang clang 0 0 0
-ternjs > > > ternjs 0 0 0 !
+# $ = Prefer from source
+# / = Not available
+# | = OR operator
+# Wildcards and spaces are acceptible.
+git;git,git,git,git,git,git,git,git,git;/,/,/,/,/,/;/,/,/;/;fast, scalable, distributed revision control system
+curl;curl,curl,curl,curl,curl,curl,curl,curl,curl;/,/,/,/,/,/;/,/,/;/;command line tool for transferring data with URL syntax
+clang;clang,clang,clang,clang,clang,clang,clang,clang,clang;/,/,/,/,/,/;/,/,/;/;C, C++ and Objective-C compiler (LLVM based)
+ternjs;>,>,>,>,>,>,>,>,>;ternjs,/,/,/,/,/;/,/,/;/;a JavaScript code analyzer for deep, cross-editor language support
+jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,/,/,openjdk10,/;/,/,/,/,/,/;/,/,/,/;!;standard Java or Java compatible Development Kit
+
+
+
+
