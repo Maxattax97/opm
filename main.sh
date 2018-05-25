@@ -9,6 +9,9 @@ OPM_RED='\033[0;91m'
 OPM_YELLOW='\033[0;93m'
 OPM_RESET='\033[0m'
 
+OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
+OPM_REPO_ROOT="https://github.com/Maxattax97/opm"
+
 # Options
 opt_opm_quiet=0
 opt_opm_lock_sudo=1
@@ -29,7 +32,14 @@ opm_npm=0
 opm_gem=0
 opm_pip=0
 
+opm_wget=0
+opm_curl=0
+opm_git=0
+
 opm_init_complete=0
+opm_fetch_complete=0
+
+opm_lookup_path="./lookup"
 
 # Logging
 msg() {
@@ -135,18 +145,31 @@ opm_init() {
     opm_gem="$(opm_probe gem)"
     opm_pip="$(opm_probe pip)"
 
+    opm_wget="$(opm_probe wget)"
+    opm_curl="$(opm_probe curl)"
+    opm_git="$(opm_probe git)"
+
     sum_managers="$(expr $opm_apt + $opm_dnf + $opm_dnf + $opm_zypper + \
-        $opm_portage + $opm_slackpkg + $opm_nix + $opm_npm + \
-        $opm_gem + $opm_pip)"
+         $opm_portage + $opm_slackpkg + $opm_nix + $opm_npm + \
+         $opm_gem + $opm_pip)"
     if [ "$sum_managers" -gt 0 ]; then
         success "Discovered $sum_managers package managers on this system:"
-        opm_print_enabled "$opm_apt" "APT"
-        opm_print_enabled "$opm_dnf" "DNF"
-        opm_print_enabled "$opm_zypper" "Zypper"
+        opm_print_enabled "$opm_apt" "apt"
+        opm_print_enabled "$opm_dnf" "dnf"
+        opm_print_enabled "$opm_zypper" "zypper"
 
-        opm_print_enabled "$opm_npm" "NPM"
-        opm_print_enabled "$opm_gem" "Gem"
-        opm_print_enabled "$opm_pip" "Pip"
+        opm_print_enabled "$opm_npm" "npm"
+        opm_print_enabled "$opm_gem" "gem"
+        opm_print_enabled "$opm_pip" "pip"
+
+        if [ "$opt_opm_quiet" -eq 0 ]; then
+           printf '\n'
+        fi
+
+        success "Discovered these tools:"
+        opm_print_enabled "$opm_wget" "wget"
+        opm_print_enabled "$opm_curl" "curl"
+        opm_print_enabled "$opm_git" "git"
 
         if [ "$opt_opm_quiet" -eq 0 ]; then
             printf '\n'
@@ -157,11 +180,16 @@ opm_init() {
     fi
 
     opm_init_complete=1
+
+    if [ ! -s "$opm_lookup_path" ]; then
+        opm_fetch
+    fi
+
     success "OPM is ready."
 }
 
 opm_version() {
-    echo "Omni Package Manager v${opm_lib_version}"
+    info "Omni Package Manager v${opm_lib_version}"
 }
 
 opm_refresh() {
@@ -303,10 +331,60 @@ opm_upgrade() {
     # Pip refreshes on its own.
 }
 
-opm_clean() {
-    warn "Not yet implemented"
+opm_fetch() {
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    # TODO: Upgrade all of OPM since some packages may need downloaded special instructions.
+    # ... Unless we get smart and download those on the fly too... :?
+
+    if [ "$opm_fetch_complete" -eq 0 ]; then
+        if [ "$opm_wget" -ne 0 ]; then
+            wget -O /tmp/OPM_UPDATE "${OPM_REPO_RAW_ROOT}/master/lookup"
+
+            check "Fetched latest resources." "Failed to fetch resources."
+            cp /tmp/OPM_UPDATE "$opm_lookup_path"
+            opm_fetch_complete=1
+        elif [ "$opm_curl" -ne 0 ]; then
+            curl -o /tmp/OPM_UPDATE "${OPM_REPO_RAW_ROOT}/master/lookup"
+
+            check "Fetched latest resources." "Failed to fetch resources."
+            cp /tmp/OPM_UPDATE "$opm_lookup_path"
+            opm_fetch_complete=1
+        elif [ "$opm_git" -ne 0 ]; then
+            git clone "${OPM_REPO_ROOT}" /tmp/opm/
+
+            check "Fetched latest resources." "Failed to fetch resources."
+            cp /tmp/opm/lookup "$opm_lookup_path"
+            opm_fetch_complete=1
+        else
+            error "No tools are available on this system to fetch remote resources."
+        fi
+    else
+        info "Skipping fetch since it was recently completed."
+    fi
 }
 
+opm_clean() {
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    warn "Not yet implemented."
+}
+
+opm_query() {
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    warn "Not yet implemented."
+}
+
+opm_version
+
 opm_init
-opm_refresh
+opm_fetch
+#opm_refresh
 #opm_upgrade

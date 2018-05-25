@@ -7,6 +7,7 @@
 # $ = Prefer from source
 # / = Not available
 # | = OR operator
+# @ = Redirect to another package
 # Wildcards and spaces are acceptible.
 git;git,git,git,git,git,git,git,git,git;/,/,/,/,/,/;/,/,/;/;fast, scalable, distributed revision control system
 curl;curl,curl,curl,curl,curl,curl,curl,curl,curl;/,/,/,/,/,/;/,/,/;/;command line tool for transferring data with URL syntax
