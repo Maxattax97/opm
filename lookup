@@ -1,20 +1,20 @@
 # NAME;apt,zypper,dnf,pacman,portage,slackpkg,pkg,nix,apk;npm,pip,gem,cargo,go,cabal;flatpak,snap,appimage;source;DESCRIPTION
 # Use pkgs.org to find names
-# NAME APT DNF ZYPPER NPM GEM PIP SRC
-# package = The name of the package to be installed with this package manager
+# Use descriptions from Debian preferrably.
+# If a package is different on another version of a distro, select the name using the latest or bleeding edge version. For example, from OpenSUSE Tumbleweed.
+# % = Not available
 # ! = Special instructions
-# > = Use a secondary package manager (NPM, Gem, Pip, ...)
 # $ = Prefer from source
-# / = Not available
 # | = OR operator
 # @ = Redirect to another package
 # Wildcards and spaces are acceptible.
-git;git,git,git,git,git,git,git,git,git;/,/,/,/,/,/;/,/,/;/;fast, scalable, distributed revision control system
-curl;curl,curl,curl,curl,curl,curl,curl,curl,curl;/,/,/,/,/,/;/,/,/;/;command line tool for transferring data with URL syntax
-clang;clang,clang,clang,clang,clang,clang,clang,clang,clang;/,/,/,/,/,/;/,/,/;/;C, C++ and Objective-C compiler (LLVM based)
-ternjs;>,>,>,>,>,>,>,>,>;ternjs,/,/,/,/,/;/,/,/;/;a JavaScript code analyzer for deep, cross-editor language support
-jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,/,/,openjdk10,/;/,/,/,/,/,/;/,/,/,/;!;standard Java or Java compatible Development Kit
-
+# TODO: Emerge installer uses slashes?
+git;git,git,git,git,git,git,git,git,git;%,%,%,%,%,%;%,%,%;%;fast, scalable, distributed revision control system
+curl;curl,curl,curl,curl,curl,curl,curl,curl,curl;%,%,%,%,%,%;%,%,%;%;command line tool for transferring data with URL syntax
+clang;clang,clang,clang,clang,clang,clang,clang,clang,clang;%,%,%,%,%,%;%,%,%;%;C, C++ and Objective-C compiler (LLVM based)
+ternjs;%,%,%,%,%,%,%,%,%;ternjs,%,%,%,%,%;%,%,%;%;a JavaScript code analyzer for deep, cross-editor language support
+jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,%,%,openjdk10,%;%,%,%,%,%,%;%,%,%,%;!;standard Java or Java compatible Development Kit
+jdk8;openjdk-8-jdk,java-1_8_0-openjdk,java-1.8.0-openjdk,jdk8-openjdk,%,%,openjdk8,%;%,%,%,%,%,%;%,%,%,%;!;OpenJDK Development Kit (JDK)
 
 
 

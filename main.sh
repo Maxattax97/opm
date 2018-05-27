@@ -41,6 +41,9 @@ opm_fetch_complete=0
 
 opm_lookup_path="./lookup"
 
+opm_queue_index=0
+opm_queue_array=
+
 # Logging
 msg() {
     if [ "$opt_opm_quiet" -eq 0 ]; then
@@ -188,8 +191,90 @@ opm_init() {
     success "OPM is ready."
 }
 
-opm_version() {
-    info "Omni Package Manager v${opm_lib_version}"
+opm_install() {
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    if [ ! -z "$#" ]; then
+        opm_queue "$@"
+    fi
+
+    # TODO: Sort using: sort -u
+
+    # Long term goal:
+    # Build the queues for each individual package manager.
+    # Build the commands and store them.
+    # Execute each package manager's command in parallel.
+    # Order: Primary, {source}, secondary, tertiary (source is synchronous)
+    # Short term modification: Everything is synchronous.
+
+    apt_queue_index=0
+    apt_queue=
+    zypper_queue_index=0
+    zypper_queue=
+    dnf_queue_index=0
+    dnf_queue=
+
+    source_queue_index=0
+    source_queue=
+
+    npm_queue_index=0
+    npm_queue=
+    pip_queue_index=0
+    pip_queue=
+    gem_queue_index=0
+    gem_queue=
+
+    for package in "${opm_queue_array[@]}"; do
+        echo "$package"
+
+        # 1 NAME;
+        # 2 apt,zypper,dnf,pacman,portage,slackpkg,pkg,nix,apk;
+        # 3 npm,pip,gem,cargo,go,cabal;
+        # 4 flatpak,snap,appimage;
+        # 5 source;
+        # 6 DESCRIPTION
+
+        result_line="$(grep -m 1 -E "^${package};" lookup)"
+
+        apt_package="$(echo "$result_line" | awk -F',|;' '{ print $2 }')"
+        zypper_package="$(echo "$result_line" | awk -F',|;' '{ print $3 }')"
+        dnf_package="$(echo "$result_line" | awk -F',|;' '{ print $4 }')"
+
+        npm_package="$(echo "$result_line" | awk -F',|;' '{ print $11 }')"
+        pip_package="$(echo "$result_line" | awk -F',|;' '{ print $12 }')"
+        gem_package="$(echo "$result_line" | awk -F',|;' '{ print $13 }')"
+
+        source_package="$(echo "$result_line" | awk -F',|;' '{ print $20 }')"
+
+        if [ "$opm_apt" -ne 0 ] && [ "$apt_package" != "%" ]; then
+            apt_queue["$apt_queue_index"]="$apt_package"
+            apt_queue_index="$(expr $apt_queue_index + 1)"
+        elif [ "$opm_zypper" -ne 0 ] && [ "$zypper_package" != "%" ]; then
+            zypper_queue["$zypper_queue_index"]="$zypper_package"
+            zypper_queue_index="$(expr $zypper_queue_index + 1)"
+        elif [ "$opm_dnf" -ne 0 ] && [ "$dnf_package" != "%" ]; then
+            dnf_queue["$dnf_queue_index"]="$dnf_package"
+            dnf_queue_index="$(expr $dnf_queue_index + 1)"
+        elif [ "$opm_npm" -ne 0 ] && [ "$npm_package" != "%" ]; then
+            npm_queue["$npm_queue_index"]="$npm_package"
+            npm_queue_index="$(expr $npm_queue_index + 1)"
+        elif [ "$opm_pip" -ne 0 ] && [ "$pip_package" != "%" ]; then
+            pip_queue["$pip_queue_index"]="$pip_package"
+            pip_queue_index="$(expr $pip_queue_index + 1)"
+        elif [ "$opm_gem" -ne 0 ] && [ "$gem_package" != "%" ]; then
+            gem_queue["$gem_queue_index"]="$gem_package"
+            gem_queue_index="$(expr $gem_queue_index + 1)"
+        else
+            warn "$package can not be installed on this system."
+        fi
+    done
+
+    info "APT: ${apt_queue[*]}"
+    info "Zypper: ${zypper_queue[*]}"
+    info "DNF: ${dnf_queue[*]}"
+    info "NPM: ${npm_queue[*]}"
 }
 
 opm_refresh() {
@@ -366,6 +451,45 @@ opm_fetch() {
     fi
 }
 
+opm_query() {
+    if [ -z "$#" ]; then
+        error "You must specify a list of terms to search with."
+        abort
+    fi
+
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    search=""
+    for i in "$@"; do
+        search="${i}|${search}"
+    done
+    search="${search%%|}"
+
+    results="$(grep -iE "$search" lookup)"
+
+    info "Results for: $* \n$(echo "$results" | awk -F';' '{ print $1 "\t\t\t" $6 }')"
+}
+
+opm_queue() {
+    if [ -z "$#" ]; then
+        error "You must specify a list of terms to search with."
+        abort
+    fi
+
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    for i in "$@"; do
+        opm_queue_array["$opm_queue_index"]="$i"
+        opm_queue_index="$(expr $opm_queue_index + 1)"
+    done
+
+    info "Queued: ${opm_queue_array[*]}"
+}
+
 opm_clean() {
     if [ "$opm_init_complete" -eq 0 ]; then
         opm_init
@@ -374,17 +498,23 @@ opm_clean() {
     warn "Not yet implemented."
 }
 
-opm_query() {
-    if [ "$opm_init_complete" -eq 0 ]; then
-        opm_init
-    fi
-
-    warn "Not yet implemented."
+opm_version() {
+    info "Omni Package Manager v${opm_lib_version}"
 }
+
+
 
 opm_version
 
 opm_init
-opm_fetch
+opm_query jdk
+opm_query jdk java
+
+opm_queue jdk8
+opm_queue jdk8 git
+
+opm_install jdk10 ternjs
+
+#opm_fetch
 #opm_refresh
 #opm_upgrade
