@@ -1,7 +1,13 @@
-#! /bin/sh
+#! /bin/dash
+
+if [ -n "$OPM_LIB_VERSION" ]; then
+    # Prevent source loops
+    echo "Aborting excessive source"
+    exit
+fi
 
 # Constants
-opm_lib_version=0.0.1
+export OPM_LIB_VERSION="0.0.1"
 
 OPM_GREEN='\033[0;92m'
 OPM_BLUE='\033[0;94m'
@@ -11,6 +17,8 @@ OPM_RESET='\033[0m'
 
 OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
 OPM_REPO_ROOT="https://github.com/Maxattax97/opm"
+
+OPM_DELIM=':'
 
 # Options
 opt_opm_quiet=0
@@ -98,7 +106,7 @@ opm_probe() {
 }
 
 opm_elevate() {
-    if [ $EUID != 0 ]; then
+    if [ "$(id -u)" != 0 ]; then
         if silence sudo -n -v; then
             sudo "$@"
         else
@@ -124,18 +132,65 @@ opm_end_sudo() {
     fi
 }
 
+# Given a string from table and a column, determine what option is set for a
+# package manager.
+opm_get_column_code() {
+    column="$2"
+    case "$2" in
+        "apt") column=2;;
+        "zypper") column=3;;
+        "dnf") column=4;;
+        "pacman") column=5;;
+        "portage") column=6;;
+        "slackpkg") column=7;;
+        "pkg") column=8;;
+        "nix") column=9;;
+        "apk") column=10;;
+        "npm") column=11;;
+        "pip") column=12;;
+        "gem") column=13;;
+        "cargo") column=14;;
+        "go") column=15;;
+        "cabal") column=16;;
+        "flatpak") column=17;;
+        "snap") column=18;;
+        "appimage") column=17;;
+        "source") column=18;;
+        (*[!0-9]*|'') column="$2";;
+        *) error "Invalid column: $2" && opm_abort;;
+    esac
+
+    value="$(echo "$1" | awk -F',|;' "{ print \$${column} };" | cut -c1-1)"
+    if [ "$value" = '%' ]; then
+        echo "0"
+    elif [ "$value" = '!' ]; then
+        echo "2"
+    elif [ "$value" = '$' ]; then
+        echo "3"
+    elif [ "$value" = '@' ]; then
+        echo "4"
+    else
+        echo "1"
+    fi
+}
+
 opm_print_enabled() {
     if [ "$opt_opm_quiet" -eq 0 ]; then
-        if [ "$1" -ne 0 ]; then
+        if [ "$1" -eq 1 ]; then
             printf "${OPM_GREEN}${2}${OPM_RESET} "
-        else
+        elif [ "$1" -eq 0 ]; then
             printf "${OPM_RED}${2}${OPM_RESET} "
+        else
+            printf "${OPM_YELLOW}${2}${OPM_RESET} "
         fi
     fi
 }
 
 # OPM Externals
 opm_init() {
+    # Check interpretter
+    warn "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
+
     # Probe for available package managers.
     opm_apt="$(opm_probe apt)"
     opm_dnf="$(opm_probe dnf)"
@@ -153,8 +208,8 @@ opm_init() {
     opm_git="$(opm_probe git)"
 
     sum_managers="$(expr $opm_apt + $opm_dnf + $opm_dnf + $opm_zypper + \
-         $opm_portage + $opm_slackpkg + $opm_nix + $opm_npm + \
-         $opm_gem + $opm_pip)"
+        $opm_portage + $opm_slackpkg + $opm_nix + $opm_npm + \
+        $opm_gem + $opm_pip)"
     if [ "$sum_managers" -gt 0 ]; then
         success "Discovered $sum_managers package managers on this system:"
         opm_print_enabled "$opm_apt" "apt"
@@ -166,7 +221,7 @@ opm_init() {
         opm_print_enabled "$opm_pip" "pip"
 
         if [ "$opt_opm_quiet" -eq 0 ]; then
-           printf '\n'
+        printf '\n'
         fi
 
         success "Discovered these tools:"
@@ -284,8 +339,8 @@ opm_refresh() {
 
     # TODO: Store processes in a list, execute all at once, check at end.
     # No gap to lose an exit code in.
-    #jobs=()
-    job_count=0
+    jobs=""
+    #job_count=0
 
     if [ "$opm_apt" -ne 0 ]; then
         info "Refreshing APT ..."
@@ -296,8 +351,9 @@ opm_refresh() {
 
         if [ "$opt_opm_parallel" -ne 0 ]; then
             opm_elevate apt-get $args update &
-            jobs[job_count]=$!
-            job_count="$(expr 1 + $job_count )"
+            jobs="${!}${OPM_DELIM}${jobs}"
+            #jobs[job_count]=$!
+            #job_count="$(expr 1 + $job_count )"
         else
             opm_elevate apt-get $args update
             check "APT refreshed." "APT failed to refresh."
@@ -314,8 +370,9 @@ opm_refresh() {
 
         if [ "$opt_opm_parallel" -ne 0 ]; then
             opm_elevate dnf $args check-update &
-            jobs[job_count]=$!
-            job_count="$(expr 1 + $job_count )"
+            jobs="${!}${OPM_DELIM}${jobs}"
+            #jobs[job_count]=$!
+            #job_count="$(expr 1 + $job_count )"
         else
             opm_elevate dnf $args check-update
             check "DNF refreshed." "DNF failed to refresh."
@@ -332,8 +389,9 @@ opm_refresh() {
 
         if [ "$opt_opm_parallel" -ne 0 ]; then
             opm_elevate zypper $args refresh &
-            jobs[job_count]=$!
-            job_count="$(expr 1 + $job_count )"
+            jobs="${!}${OPM_DELIM}${jobs}"
+            #jobs[job_count]=$!
+            #job_count="$(expr 1 + $job_count )"
         else
             opm_elevate zypper $args refresh
             check "Zypper refreshed." "Zypper failed to refresh."
@@ -347,10 +405,14 @@ opm_refresh() {
     opm_refresh_sudo
 
     failures=0
-    for pid in ${jobs[*]}; do
+    jobs="${jobs%%${OPM_DELIM}}"
+    IFS="$OPM_DELIM"
+    for pid in $jobs; do
+        echo "waiting on fork $pid"
         wait $pid || failures="$(expr $failures + 1)"
         opm_refresh_sudo
     done
+    IFS=' '
 
     if [ "$failures" -gt 0 ]; then
         error "A package manager failed to refresh."
@@ -364,7 +426,7 @@ opm_upgrade() {
         opm_init
     fi
 
-    jobs=()
+    jobs=
     job_count=0
 
     if [ "$opm_apt" -ne 0 ]; then
@@ -490,6 +552,40 @@ opm_queue() {
     info "Queued: ${opm_queue_array[*]}"
 }
 
+opm_describe() {
+    if [ "$#" -ne 1 ]; then
+        error "You must specify a package."
+        abort
+    fi
+
+    if [ "$opm_init_complete" -eq 0 ]; then
+        opm_init
+    fi
+
+    result="$(awk -F';' "BEGIN{IGNORECASE = 1}\$1 ~ /^$1$/ { print };" lookup)"
+
+    if [ -n "$result" ]; then
+        name="$(echo "$result" | awk -F';' '{ print $1 };')"
+        description="$(echo "$result" | awk -F';' '{ print $6 };')"
+        info "Name: \t\t$name"
+        info "Description: \t$description"
+        info "Support:"
+        opm_print_enabled "$(opm_get_column_code "$result" "apt")" "apt"
+        opm_print_enabled "$(opm_get_column_code "$result" "dnf")" "dnf"
+        opm_print_enabled "$(opm_get_column_code "$result" "zypper")" "zypper"
+
+        opm_print_enabled "$(opm_get_column_code "$result" "npm")" "npm"
+        opm_print_enabled "$(opm_get_column_code "$result" "pip")" "pip"
+        opm_print_enabled "$(opm_get_column_code "$result" "gem")" "gem"
+
+        if [ "$opt_opm_quiet" -eq 0 ]; then
+            printf '\n'
+        fi
+    else
+        warn "No entries were found for $1."
+    fi
+}
+
 opm_clean() {
     if [ "$opm_init_complete" -eq 0 ]; then
         opm_init
@@ -499,22 +595,30 @@ opm_clean() {
 }
 
 opm_version() {
-    info "Omni Package Manager v${opm_lib_version}"
+    info "Omni Package Manager v${OPM_LIB_VERSION}"
 }
-
-
 
 opm_version
 
 opm_init
+
+#opm_fetch
+
+#opm_refresh
+
+opm_describe jdk
+opm_describe jdk8
+opm_describe ternjs
+opm_describe TERNJS
+opm_describe nvm
+opm_describe tern
+
 opm_query jdk
 opm_query jdk java
 
 opm_queue jdk8
 opm_queue jdk8 git
 
-opm_install jdk10 ternjs
+#opm_install jdk10 ternjs
 
-#opm_fetch
-#opm_refresh
 #opm_upgrade
