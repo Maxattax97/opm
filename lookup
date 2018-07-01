@@ -2,6 +2,7 @@
 # NAME 1;apt 2,zypper 3,dnf 4,pacman 5,portage 6,slackpkg 7,pkg 8,nix 9,apk 10;npm 11,pip 12,gem 13,cargo 14,go 15,cabal 16;flatpak 17,snap 18,appimage 19;source 20;DESCRIPTION 21
 # Use pkgs.org to find names
 # Use descriptions from Debian preferrably.
+# Use the leading version (latest, but relatively stable) preferrably. Best case, include multiple major version numbers.
 # If a package is different on another version of a distro, select the name using the latest or bleeding edge version. For example, from OpenSUSE Tumbleweed.
 # % = Not available
 # ! = Special instructions
@@ -14,5 +15,8 @@ ternjs;%,%,%,%,%,%,%,%,%;ternjs,%,%,%,%,%;%,%,%;%;a JavaScript code analyzer for
 jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,%,%,openjdk10,%;%,%,%,%,%,%;%,%,%,%;!;standard Java or Java compatible Development Kit
 jdk8;openjdk-8-jdk,java-1_8_0-openjdk,java-1.8.0-openjdk,jdk8-openjdk,%,%,openjdk8,%;%,%,%,%,%,%;%,%,%,%;!;OpenJDK Development Kit (JDK)
 nvm;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;simple bash script to manage multiple active node.js versions
-
+node;nodejs,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+node10;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+node8;nodejs,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+node6;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
 

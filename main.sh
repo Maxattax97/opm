@@ -15,9 +15,14 @@ OPM_RED='\033[0;91m'
 OPM_YELLOW='\033[0;93m'
 OPM_MAGENTA='\033[0;95m'
 OPM_RESET='\033[0m'
+OPM_GREP_COLORS='ms=01;94'
 
 OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
 OPM_REPO_ROOT="https://github.com/Maxattax97/opm"
+
+OPM_DEFAULT_NODE="node10"
+OPM_DEFAULT_PYTHON="python3"
+OPM_DEFAULT_RUBY="ruby"
 
 OPM_DELIM=':'
 
@@ -309,6 +314,10 @@ opm_install() {
     pip_queue_array=
     gem_queue_array=
 
+    will_install_npm=0
+    will_install_pip=0
+    will_install_gem=0
+
     IFS="$OPM_DELIM"
     for package in $opm_queue_array; do
         # 1 NAME;
@@ -339,12 +348,30 @@ opm_install() {
             zypper_queue_array="${zypper_package}${OPM_DELIM}${zypper_queue_array}"
         elif [ "$opm_dnf" -ne 0 ] && [ "$dnf_package" != "%" ]; then
             dnf_queue_array="${dnf_package}${OPM_DELIM}${dnf_queue_array}"
-        elif [ "$opm_npm" -ne 0 ] && [ "$npm_package" != "%" ]; then
-            npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
+        elif [ "$npm_package" != "%" ]; then
+            if [ "$opm_npm" -ne 0 ] || [ "$will_install_npm" -ne 0 ]; then
+                npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
+            elif [ "$opm_npm" -eq 0 ] && [ "$will_install_npm" -ne 0 ]; then
+                opm_queue_array="${opm_queue_array}${OPM_DELIM}${OPM_DEFAULT_NODE}"
+                will_install_npm=1
+                npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
+            fi
         elif [ "$opm_pip" -ne 0 ] && [ "$pip_package" != "%" ]; then
-            pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
+            if [ "$opm_pip" -ne 0 ] || [ "$will_install_pip" -ne 0 ]; then
+                pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
+            elif [ "$opm_pip" -eq 0 ] && [ "$will_install_pip" -ne 0 ]; then
+                opm_queue_array="${opm_queue_array}${OPM_DELIM}${OPM_DEFAULT_PYTHON}"
+                will_install_pip=1
+                pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
+            fi
         elif [ "$opm_gem" -ne 0 ] && [ "$gem_package" != "%" ]; then
-            gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
+            if [ "$opm_gem" -ne 0 ] || [ "$will_install_gem" -ne 0 ]; then
+                gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
+            elif [ "$opm_gem" -eq 0 ] && [ "$will_install_gem" -ne 0 ]; then
+                opm_queue_array="${opm_queue_array}${OPM_DELIM}${OPM_DEFAULT_RUBY}"
+                will_install_gem=1
+                gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
+            fi
         else
             warn "$package can not be installed on this system."
         fi
@@ -366,7 +393,37 @@ opm_install() {
     none "Pip: ${pip_queue_string}"
     none "Gem: ${gem_queue_string}"
 
-    if [ "$opm_zypper" -ne 0 ]; then
+
+    if [ "$opm_apt" -ne 0 ] && [ -n "$apt_queue_string" ]; then
+        info "Installing packages via APT ..."
+        args=""
+        if [ "$opt_quiet" -ne 0 ]; then
+            args="$args --quiet"
+        fi
+        if [ "$opt_noconfirm" -ne 0 ]; then
+            args="$args -y"
+        fi
+
+        opm_dry_elevated_exec apt-get install $args $apt_queue_string
+        check "APT packages installed." "APT failed to install packages."
+    fi
+
+    if [ "$opm_dnf" -ne 0 ] && [ -n "$dnf_queue_string" ]; then
+        info "Installing packages via DNF ..."
+
+        args=""
+        if [ "$opt_quiet" -ne 0 ]; then
+            args="$args --quiet"
+        fi
+        if [ "$opt_noconfirm" -ne 0 ]; then
+            args="$args --noconfirm"
+        fi
+
+        opm_dry_elevated_exec dnf install $args $dnf_queue_string
+        check "DNF packages installed." "DNF failed to install packages."
+    fi
+
+    if [ "$opm_zypper" -ne 0 ] && [ -n "$zypper_queue_string" ]; then
         info "Installing packages via Zypper ..."
 
         args=""
@@ -377,9 +434,43 @@ opm_install() {
             args="$args --non-interactive"
         fi
 
-        opm_dry_elevated_exec zypper $args install $zypper_queue_string
+        opm_dry_elevated_exec zypper install $args $zypper_queue_string
         check "Zypper packages installed." "Zypper failed to install packages."
     fi
+
+
+    # Enable freshly installed package managers.
+    if [ "$will_install_npm" -ne 0 ]; then
+        info "NPM has been installed and enabled."
+        opm_npm=1
+    fi
+    if [ "$will_install_pip" -ne 0 ]; then
+        info "Pip has been installed and enabled."
+        opm_pip=1
+    fi
+    if [ "$will_install_gem" -ne 0 ]; then
+        info "Gem has been installed and enabled."
+        opm_gem=1
+    fi
+
+    # These package managers must install _globally_.
+    if [ "$opm_npm" -ne 0 ] && [ -n "$npm_queue_string" ]; then
+        info "Installing packages via NPM ..."
+
+        args=""
+        if [ "$opt_quiet" -ne 0 ]; then
+            # --quiet prints errors.
+            # --silent prints nothing.
+            args="$args --quiet"
+        fi
+        # NPM does not offer a non-interactive argument.
+
+        opm_dry_exec npm install -g $args $npm_queue_string
+        check "NPM packages installed." "NPM failed to install packages."
+    fi
+
+    # Gem refreshes on its own.
+    # Pip refreshes on its own.
 }
 
 opm_refresh() {
@@ -585,7 +676,10 @@ opm_query() {
 
     results="$(grep -iE "$search" lookup)"
 
-    info "Results for: $* \n$(echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }')"
+    info "Results for: $*"
+    if [ "$opt_opm_quiet" -eq 0 ]; then
+        echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | GREP_COLORS="${OPM_GREP_COLORS}" grep -iE --color "$search"
+    fi
 }
 
 opm_queue() {
