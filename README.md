@@ -2,8 +2,8 @@
 
 Initialized `opm`, pronounced like the magical, fix-it-all plant "Opium" 🌺.
 
-OPM is a shell (_pure_, not Bash) library for managing packages across various Linux/BSD package managers. Instead of asking the user to install `curl` before using your script, you can prompt to install it for them.
-OPM includes access to package managers like `npm`,`gem`, and `pip`, and will also attempt to build some packages from source if necessary.
+OPM is a POSIX shell (_not Bash_) library and command line tool for managing packages across various Linux/BSD package managers. Instead of asking the user to install `curl` or follow a list of instructions for each package manager before using your program, you can prompt to install it for them or provide a single command to intall it with.
+OPM includes access to sophisticated package managers like `apt`, `dnf`, and `zypper`, but also supports `npm`,`gem`, `pip`, and even `flatpak`. It will also attempt to build some packages from source if necessary.
 
 ## Installation
 

@@ -13,6 +13,7 @@ OPM_GREEN='\033[0;92m'
 OPM_BLUE='\033[0;94m'
 OPM_RED='\033[0;91m'
 OPM_YELLOW='\033[0;93m'
+OPM_MAGENTA='\033[0;95m'
 OPM_RESET='\033[0m'
 
 OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
@@ -24,6 +25,7 @@ OPM_DELIM=':'
 opt_opm_quiet=0
 opt_opm_lock_sudo=1
 opt_opm_parallel=1
+opt_opm_dry=1
 
 opt_quiet=0
 opt_noconfirm=0
@@ -55,24 +57,36 @@ opm_queue_array=
 # Logging
 msg() {
     if [ "$opt_opm_quiet" -eq 0 ]; then
-        printf '%b\n' "$1"
+        if [ -n "$2" ] && [ "$2" -ne 0 ]; then
+            printf '%b' "$1"
+        else
+            printf '%b\n' "$1"
+        fi
     fi
 }
 
 success() {
-    msg "${OPM_GREEN}[*]${OPM_RESET} ${1}${2}"
+    msg "${OPM_GREEN}[*]${OPM_RESET} ${1}${2}" "${3}"
 }
 
 info() {
-    msg "${OPM_BLUE}[~]${OPM_RESET} ${1}${2}"
+    msg "${OPM_BLUE}[~]${OPM_RESET} ${1}${2}" "${3}"
 }
 
 warn() {
-    msg "${OPM_YELLOW}[!]${OPM_RESET} ${1}${2}"
+    msg "${OPM_YELLOW}[!]${OPM_RESET} ${1}${2}" "${3}"
 }
 
 error() {
-    msg "${OPM_RED}[X]${OPM_RESET} ${1}${2}"
+    msg "${OPM_RED}[X]${OPM_RESET} ${1}${2}" "${3}"
+}
+
+dry() {
+    msg "${OPM_MAGENTA} > ${OPM_RESET} ${1}${2}" "${3}"
+}
+
+none() {
+    msg "    ${1}${2}" "${3}"
 }
 
 # Tools
@@ -89,6 +103,22 @@ check() {
 
 silence() {
     eval "$@" > /dev/null 2>&1
+}
+
+opm_dry_exec() {
+    if [ "$opt_opm_dry" -ne 0 ]; then
+        dry "$*"
+    else
+        eval "$@"
+    fi
+}
+
+opm_dry_elevated_exec() {
+    if [ "$opt_opm_dry" -ne 0 ]; then
+        dry "sudo $*"
+    else
+        eval sudo "$@"
+    fi
 }
 
 # OPM Internals
@@ -154,8 +184,8 @@ opm_get_column_code() {
         "cabal") column=16;;
         "flatpak") column=17;;
         "snap") column=18;;
-        "appimage") column=17;;
-        "source") column=18;;
+        "appimage") column=19;;
+        "source") column=20;;
         (*[!0-9]*|'') column="$2";;
         *) error "Invalid column: $2" && opm_abort;;
     esac
@@ -164,7 +194,12 @@ opm_get_column_code() {
     if [ "$value" = '%' ]; then
         echo "0"
     elif [ "$value" = '!' ]; then
-        echo "2"
+        if [ "$column" -eq 20 ]; then
+            # Source is always ! if it is available.
+            echo "1"
+        else
+            echo "2"
+        fi
     elif [ "$value" = '$' ]; then
         echo "3"
     elif [ "$value" = '@' ]; then
@@ -264,26 +299,18 @@ opm_install() {
     # Order: Primary, {source}, secondary, tertiary (source is synchronous)
     # Short term modification: Everything is synchronous.
 
-    apt_queue_index=0
-    apt_queue=
-    zypper_queue_index=0
-    zypper_queue=
-    dnf_queue_index=0
-    dnf_queue=
+    apt_queue_array=
+    zypper_queue_array=
+    dnf_queue_array=
 
-    source_queue_index=0
-    source_queue=
+    source_queue_array=
 
-    npm_queue_index=0
-    npm_queue=
-    pip_queue_index=0
-    pip_queue=
-    gem_queue_index=0
-    gem_queue=
+    npm_queue_array=
+    pip_queue_array=
+    gem_queue_array=
 
-    for package in "${opm_queue_array[@]}"; do
-        echo "$package"
-
+    IFS="$OPM_DELIM"
+    for package in $opm_queue_array; do
         # 1 NAME;
         # 2 apt,zypper,dnf,pacman,portage,slackpkg,pkg,nix,apk;
         # 3 npm,pip,gem,cargo,go,cabal;
@@ -303,33 +330,56 @@ opm_install() {
 
         source_package="$(echo "$result_line" | awk -F',|;' '{ print $20 }')"
 
+        #info "${package} ${result_line}"
+        #info "${apt_package} ${zypper_package} ${dnf_package} ${npm_package} ${pip_package} ${gem_package} ${source_package}"
+
         if [ "$opm_apt" -ne 0 ] && [ "$apt_package" != "%" ]; then
-            apt_queue["$apt_queue_index"]="$apt_package"
-            apt_queue_index="$(expr $apt_queue_index + 1)"
+            apt_queue_array="${apt_package}${OPM_DELIM}${apt_queue_array}"
         elif [ "$opm_zypper" -ne 0 ] && [ "$zypper_package" != "%" ]; then
-            zypper_queue["$zypper_queue_index"]="$zypper_package"
-            zypper_queue_index="$(expr $zypper_queue_index + 1)"
+            zypper_queue_array="${zypper_package}${OPM_DELIM}${zypper_queue_array}"
         elif [ "$opm_dnf" -ne 0 ] && [ "$dnf_package" != "%" ]; then
-            dnf_queue["$dnf_queue_index"]="$dnf_package"
-            dnf_queue_index="$(expr $dnf_queue_index + 1)"
+            dnf_queue_array="${dnf_package}${OPM_DELIM}${dnf_queue_array}"
         elif [ "$opm_npm" -ne 0 ] && [ "$npm_package" != "%" ]; then
-            npm_queue["$npm_queue_index"]="$npm_package"
-            npm_queue_index="$(expr $npm_queue_index + 1)"
+            npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
         elif [ "$opm_pip" -ne 0 ] && [ "$pip_package" != "%" ]; then
-            pip_queue["$pip_queue_index"]="$pip_package"
-            pip_queue_index="$(expr $pip_queue_index + 1)"
+            pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
         elif [ "$opm_gem" -ne 0 ] && [ "$gem_package" != "%" ]; then
-            gem_queue["$gem_queue_index"]="$gem_package"
-            gem_queue_index="$(expr $gem_queue_index + 1)"
+            gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
         else
             warn "$package can not be installed on this system."
         fi
     done
+    IFS=' '
 
-    info "APT: ${apt_queue[*]}"
-    info "Zypper: ${zypper_queue[*]}"
-    info "DNF: ${dnf_queue[*]}"
-    info "NPM: ${npm_queue[*]}"
+    apt_queue_string="$(printf '%s' "$apt_queue_array" | tr "${OPM_DELIM}" " ")"
+    zypper_queue_string="$(printf '%s' "$zypper_queue_array" | tr "${OPM_DELIM}" " ")"
+    dnf_queue_string="$(printf '%s' "$dnf_queue_array" | tr "${OPM_DELIM}" " ")"
+    npm_queue_string="$(printf '%s' "$npm_queue_array" | tr "${OPM_DELIM}" " ")"
+    pip_queue_string="$(printf '%s' "$pip_queue_array" | tr "${OPM_DELIM}" " ")"
+    gem_queue_string="$(printf '%s' "$gem_queue_array" | tr "${OPM_DELIM}" " ")"
+
+    info "Packages to be installed:"
+    none "APT: ${apt_queue_string}"
+    none "Zypper: ${zypper_queue_string}"
+    none "DNF: ${dnf_queue_string}"
+    none "NPM: ${npm_queue_string}"
+    none "Pip: ${pip_queue_string}"
+    none "Gem: ${gem_queue_string}"
+
+    if [ "$opm_zypper" -ne 0 ]; then
+        info "Installing packages via Zypper ..."
+
+        args=""
+        if [ "$opt_quiet" -ne 0 ]; then
+            args="$args --quiet"
+        fi
+        if [ "$opt_noconfirm" -ne 0 ]; then
+            args="$args --non-interactive"
+        fi
+
+        opm_dry_elevated_exec zypper $args install $zypper_queue_string
+        check "Zypper packages installed." "Zypper failed to install packages."
+    fi
 }
 
 opm_refresh() {
@@ -350,12 +400,12 @@ opm_refresh() {
         fi
 
         if [ "$opt_opm_parallel" -ne 0 ]; then
-            opm_elevate apt-get $args update &
+            opm_dry_elevated_exec apt-get $args update &
             jobs="${!}${OPM_DELIM}${jobs}"
             #jobs[job_count]=$!
             #job_count="$(expr 1 + $job_count )"
         else
-            opm_elevate apt-get $args update
+            opm_dry_elevated_exec apt-get $args update
             check "APT refreshed." "APT failed to refresh."
         fi
     fi
@@ -369,12 +419,12 @@ opm_refresh() {
         fi
 
         if [ "$opt_opm_parallel" -ne 0 ]; then
-            opm_elevate dnf $args check-update &
+            opm_dry_elevated_exec dnf $args check-update &
             jobs="${!}${OPM_DELIM}${jobs}"
             #jobs[job_count]=$!
             #job_count="$(expr 1 + $job_count )"
         else
-            opm_elevate dnf $args check-update
+            opm_dry_elevated_exec dnf $args check-update
             check "DNF refreshed." "DNF failed to refresh."
         fi
     fi
@@ -388,12 +438,12 @@ opm_refresh() {
         fi
 
         if [ "$opt_opm_parallel" -ne 0 ]; then
-            opm_elevate zypper $args refresh &
+            opm_dry_elevated_exec zypper $args refresh &
             jobs="${!}${OPM_DELIM}${jobs}"
             #jobs[job_count]=$!
             #job_count="$(expr 1 + $job_count )"
         else
-            opm_elevate zypper $args refresh
+            opm_dry_elevated_exec zypper $args refresh
             check "Zypper refreshed." "Zypper failed to refresh."
         fi
     fi
@@ -439,7 +489,7 @@ opm_upgrade() {
             args="$args -y"
         fi
 
-        opm_elevate apt-get $args upgrade
+        opm_dry_elevated_exec apt-get $args upgrade
         check "APT upgraded." "APT failed to upgrade."
     fi
 
@@ -454,7 +504,7 @@ opm_upgrade() {
             args="$args --noconfirm"
         fi
 
-        opm_elevate dnf $args upgrade
+        opm_dry_elevated_exec dnf $args upgrade
         check "DNF upgraded." "DNF failed to upgrade."
     fi
 
@@ -469,13 +519,17 @@ opm_upgrade() {
             args="$args --non-interactive"
         fi
 
-        opm_elevate zypper $args up
+        opm_dry_elevated_exec zypper $args update
         check "Zypper upgraded." "Zypper failed to upgrade."
     fi
 
     # NPM refreshes on its own.
     # Gem refreshes on its own.
     # Pip refreshes on its own.
+}
+
+opm_add_repo() {
+    warn "Not yet implemented."
 }
 
 opm_fetch() {
@@ -488,22 +542,22 @@ opm_fetch() {
 
     if [ "$opm_fetch_complete" -eq 0 ]; then
         if [ "$opm_wget" -ne 0 ]; then
-            wget -O /tmp/OPM_UPDATE "${OPM_REPO_RAW_ROOT}/master/lookup"
+            opm_dry_exec wget -O /tmp/OPM_UPDATE "${OPM_REPO_RAW_ROOT}/master/lookup"
 
             check "Fetched latest resources." "Failed to fetch resources."
-            cp /tmp/OPM_UPDATE "$opm_lookup_path"
+            opm_dry_exec cp /tmp/OPM_UPDATE "$opm_lookup_path"
             opm_fetch_complete=1
         elif [ "$opm_curl" -ne 0 ]; then
-            curl -o /tmp/OPM_UPDATE "${OPM_REPO_RAW_ROOT}/master/lookup"
+            opm_dry_exec curl -o /tmp/OPM_UPDATE "${OPM_REPO_RAW_ROOT}/master/lookup"
 
             check "Fetched latest resources." "Failed to fetch resources."
-            cp /tmp/OPM_UPDATE "$opm_lookup_path"
+            opm_dry_exec cp /tmp/OPM_UPDATE "$opm_lookup_path"
             opm_fetch_complete=1
         elif [ "$opm_git" -ne 0 ]; then
-            git clone "${OPM_REPO_ROOT}" /tmp/opm/
+            opm_dry_exec git clone "${OPM_REPO_ROOT}" /tmp/opm/
 
             check "Fetched latest resources." "Failed to fetch resources."
-            cp /tmp/opm/lookup "$opm_lookup_path"
+            opm_dry_exec cp /tmp/opm/lookup "$opm_lookup_path"
             opm_fetch_complete=1
         else
             error "No tools are available on this system to fetch remote resources."
@@ -531,7 +585,7 @@ opm_query() {
 
     results="$(grep -iE "$search" lookup)"
 
-    info "Results for: $* \n$(echo "$results" | awk -F';' '{ print $1 "\t\t\t" $6 }')"
+    info "Results for: $* \n$(echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }')"
 }
 
 opm_queue() {
@@ -545,11 +599,23 @@ opm_queue() {
     fi
 
     for i in "$@"; do
-        opm_queue_array["$opm_queue_index"]="$i"
-        opm_queue_index="$(expr $opm_queue_index + 1)"
+        #opm_queue_array["$opm_queue_index"]="$i"
+        #echo "${OPM_DELIM}${i} | ${opm_queue_array}"
+        exists="$(echo "$opm_queue_array" | grep -iE "(${OPM_DELIM}|^)${i}(${OPM_DELIM}|$)")"
+        if [ -z "$exists" ]; then
+            opm_queue_array="${i}${OPM_DELIM}${opm_queue_array}"
+        fi
     done
 
-    info "Queued: ${opm_queue_array[*]}"
+    queue_string=""
+    opm_queue_array="${opm_queue_array%%${OPM_DELIM}}"
+    IFS="$OPM_DELIM"
+    for item in $opm_queue_array; do
+        queue_string="$queue_string $item"
+    done
+    IFS=' '
+
+    info "Queued: ${queue_string}"
 }
 
 opm_describe() {
@@ -568,8 +634,8 @@ opm_describe() {
         name="$(echo "$result" | awk -F';' '{ print $1 };')"
         description="$(echo "$result" | awk -F';' '{ print $6 };')"
         info "Name: \t\t$name"
-        info "Description: \t$description"
-        info "Support:"
+        none "Description: \t$description"
+        none "Support: \t\t" "" 1
         opm_print_enabled "$(opm_get_column_code "$result" "apt")" "apt"
         opm_print_enabled "$(opm_get_column_code "$result" "dnf")" "dnf"
         opm_print_enabled "$(opm_get_column_code "$result" "zypper")" "zypper"
@@ -577,6 +643,8 @@ opm_describe() {
         opm_print_enabled "$(opm_get_column_code "$result" "npm")" "npm"
         opm_print_enabled "$(opm_get_column_code "$result" "pip")" "pip"
         opm_print_enabled "$(opm_get_column_code "$result" "gem")" "gem"
+
+        opm_print_enabled "$(opm_get_column_code "$result" "source")" "source"
 
         if [ "$opt_opm_quiet" -eq 0 ]; then
             printf '\n'
@@ -602,9 +670,9 @@ opm_version
 
 opm_init
 
-#opm_fetch
+opm_fetch
 
-#opm_refresh
+opm_refresh
 
 opm_describe jdk
 opm_describe jdk8
@@ -615,10 +683,11 @@ opm_describe tern
 
 opm_query jdk
 opm_query jdk java
+opm_query JDK JAVA
 
 opm_queue jdk8
 opm_queue jdk8 git
 
-#opm_install jdk10 ternjs
+opm_install jdk10 ternjs
 
-#opm_upgrade
+opm_upgrade

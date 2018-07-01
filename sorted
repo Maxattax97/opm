@@ -1,0 +1,7 @@
+clang;clang,clang,clang,clang,clang,clang,clang,clang,clang;%,%,%,%,%,%;%,%,%;%;C, C++ and Objective-C compiler (LLVM based)
+curl;curl,curl,curl,curl,curl,curl,curl,curl,curl;%,%,%,%,%,%;%,%,%;%;command line tool for transferring data with URL syntax
+git;git,git,git,git,git,git,git,git,git;%,%,%,%,%,%;%,%,%;%;fast, scalable, distributed revision control system
+jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,%,%,openjdk10,%;%,%,%,%,%,%;%,%,%,%;!;standard Java or Java compatible Development Kit
+jdk8;openjdk-8-jdk,java-1_8_0-openjdk,java-1.8.0-openjdk,jdk8-openjdk,%,%,openjdk8,%;%,%,%,%,%,%;%,%,%,%;!;OpenJDK Development Kit (JDK)
+nvm;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;simple bash script to manage multiple active node.js versions
+ternjs;%,%,%,%,%,%,%,%,%;ternjs,%,%,%,%,%;%,%,%;%;a JavaScript code analyzer for deep, cross-editor language support
