@@ -7,21 +7,25 @@ if [ -n "$OPM_LIB_VERSION" ]; then
 fi
 
 # Constants
+# TODO: Implement sem-ver based system for requeusting a manual update from the user.
 export OPM_LIB_VERSION="0.0.1"
+OPM_DEBUG=1
 
-OPM_GREEN='\033[0;92m'
-OPM_BLUE='\033[0;94m'
 OPM_RED='\033[0;91m'
+OPM_GREEN='\033[0;92m'
 OPM_YELLOW='\033[0;93m'
+OPM_BLUE='\033[0;94m'
 OPM_MAGENTA='\033[0;95m'
+OPM_CYAN='\033[0;96m'
 OPM_RESET='\033[0m'
+OPM_BLINK='\033[5m'
 OPM_GREP_COLORS='ms=01;94'
 
 OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
 OPM_REPO_ROOT="https://github.com/Maxattax97/opm"
 
-OPM_DEFAULT_NODE="node10"
-OPM_DEFAULT_PYTHON="python3"
+OPM_DEFAULT_NODE="node"
+OPM_DEFAULT_PYTHON="python"
 OPM_DEFAULT_RUBY="ruby"
 
 OPM_DELIM=':'
@@ -59,6 +63,18 @@ opm_lookup_path="./lookup"
 opm_queue_index=0
 opm_queue_array=
 
+apt_queue_array=
+zypper_queue_array=
+dnf_queue_array=
+source_queue_array=
+npm_queue_array=
+pip_queue_array=
+gem_queue_array=
+
+will_install_npm=0
+will_install_pip=0
+will_install_gem=0
+
 # Logging
 msg() {
     if [ "$opt_opm_quiet" -eq 0 ]; then
@@ -83,7 +99,7 @@ warn() {
 }
 
 error() {
-    msg "${OPM_RED}[X]${OPM_RESET} ${1}${2}" "${3}"
+    msg "${OPM_RED}${OPM_BLINK}[X]${OPM_RESET} ${1}${2}" "${3}"
 }
 
 dry() {
@@ -92,6 +108,12 @@ dry() {
 
 none() {
     msg "    ${1}${2}" "${3}"
+}
+
+debug() {
+    if [ "$OPM_DEBUG" -ne 0 ]; then
+        msg "${OPM_CYAN}${OPM_BLINK}[#]${OPM_RESET} ${1}${2}" "${3}"
+    fi
 }
 
 # Tools
@@ -303,96 +325,6 @@ opm_install() {
     # Execute each package manager's command in parallel.
     # Order: Primary, {source}, secondary, tertiary (source is synchronous)
     # Short term modification: Everything is synchronous.
-
-    apt_queue_array=
-    zypper_queue_array=
-    dnf_queue_array=
-
-    source_queue_array=
-
-    npm_queue_array=
-    pip_queue_array=
-    gem_queue_array=
-
-    will_install_npm=0
-    will_install_pip=0
-    will_install_gem=0
-
-    IFS="$OPM_DELIM"
-    for package in $opm_queue_array; do
-        # 1 NAME;
-        # 2 apt,zypper,dnf,pacman,portage,slackpkg,pkg,nix,apk;
-        # 3 npm,pip,gem,cargo,go,cabal;
-        # 4 flatpak,snap,appimage;
-        # 5 source;
-        # 6 DESCRIPTION
-
-        result_line="$(grep -m 1 -E "^${package};" lookup)"
-
-        apt_package="$(echo "$result_line" | awk -F',|;' '{ print $2 }')"
-        zypper_package="$(echo "$result_line" | awk -F',|;' '{ print $3 }')"
-        dnf_package="$(echo "$result_line" | awk -F',|;' '{ print $4 }')"
-
-        npm_package="$(echo "$result_line" | awk -F',|;' '{ print $11 }')"
-        pip_package="$(echo "$result_line" | awk -F',|;' '{ print $12 }')"
-        gem_package="$(echo "$result_line" | awk -F',|;' '{ print $13 }')"
-
-        source_package="$(echo "$result_line" | awk -F',|;' '{ print $20 }')"
-
-        #info "${package} ${result_line}"
-        #info "${apt_package} ${zypper_package} ${dnf_package} ${npm_package} ${pip_package} ${gem_package} ${source_package}"
-
-        if [ "$opm_apt" -ne 0 ] && [ "$apt_package" != "%" ]; then
-            apt_queue_array="${apt_package}${OPM_DELIM}${apt_queue_array}"
-        elif [ "$opm_zypper" -ne 0 ] && [ "$zypper_package" != "%" ]; then
-            zypper_queue_array="${zypper_package}${OPM_DELIM}${zypper_queue_array}"
-        elif [ "$opm_dnf" -ne 0 ] && [ "$dnf_package" != "%" ]; then
-            dnf_queue_array="${dnf_package}${OPM_DELIM}${dnf_queue_array}"
-        elif [ "$npm_package" != "%" ]; then
-            if [ "$opm_npm" -ne 0 ] || [ "$will_install_npm" -ne 0 ]; then
-                npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
-            elif [ "$opm_npm" -eq 0 ] && [ "$will_install_npm" -ne 0 ]; then
-                opm_queue_array="${opm_queue_array}${OPM_DELIM}${OPM_DEFAULT_NODE}"
-                will_install_npm=1
-                npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
-            fi
-        elif [ "$opm_pip" -ne 0 ] && [ "$pip_package" != "%" ]; then
-            if [ "$opm_pip" -ne 0 ] || [ "$will_install_pip" -ne 0 ]; then
-                pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
-            elif [ "$opm_pip" -eq 0 ] && [ "$will_install_pip" -ne 0 ]; then
-                opm_queue_array="${opm_queue_array}${OPM_DELIM}${OPM_DEFAULT_PYTHON}"
-                will_install_pip=1
-                pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
-            fi
-        elif [ "$opm_gem" -ne 0 ] && [ "$gem_package" != "%" ]; then
-            if [ "$opm_gem" -ne 0 ] || [ "$will_install_gem" -ne 0 ]; then
-                gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
-            elif [ "$opm_gem" -eq 0 ] && [ "$will_install_gem" -ne 0 ]; then
-                opm_queue_array="${opm_queue_array}${OPM_DELIM}${OPM_DEFAULT_RUBY}"
-                will_install_gem=1
-                gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
-            fi
-        else
-            warn "$package can not be installed on this system."
-        fi
-    done
-    IFS=' '
-
-    apt_queue_string="$(printf '%s' "$apt_queue_array" | tr "${OPM_DELIM}" " ")"
-    zypper_queue_string="$(printf '%s' "$zypper_queue_array" | tr "${OPM_DELIM}" " ")"
-    dnf_queue_string="$(printf '%s' "$dnf_queue_array" | tr "${OPM_DELIM}" " ")"
-    npm_queue_string="$(printf '%s' "$npm_queue_array" | tr "${OPM_DELIM}" " ")"
-    pip_queue_string="$(printf '%s' "$pip_queue_array" | tr "${OPM_DELIM}" " ")"
-    gem_queue_string="$(printf '%s' "$gem_queue_array" | tr "${OPM_DELIM}" " ")"
-
-    info "Packages to be installed:"
-    none "APT: ${apt_queue_string}"
-    none "Zypper: ${zypper_queue_string}"
-    none "DNF: ${dnf_queue_string}"
-    none "NPM: ${npm_queue_string}"
-    none "Pip: ${pip_queue_string}"
-    none "Gem: ${gem_queue_string}"
-
 
     if [ "$opm_apt" -ne 0 ] && [ -n "$apt_queue_string" ]; then
         info "Installing packages via APT ..."
@@ -620,7 +552,7 @@ opm_upgrade() {
 }
 
 opm_add_repo() {
-    warn "Not yet implemented."
+    debug "Not yet implemented."
 }
 
 opm_fetch() {
@@ -692,24 +624,114 @@ opm_queue() {
         opm_init
     fi
 
-    for i in "$@"; do
-        #opm_queue_array["$opm_queue_index"]="$i"
-        #echo "${OPM_DELIM}${i} | ${opm_queue_array}"
-        exists="$(echo "$opm_queue_array" | grep -iE "(${OPM_DELIM}|^)${i}(${OPM_DELIM}|$)")"
-        if [ -z "$exists" ]; then
-            opm_queue_array="${i}${OPM_DELIM}${opm_queue_array}"
+    dependency_array=
+
+    for package in "$@"; do
+        # 1 NAME;
+        # 2 apt,zypper,dnf,pacman,portage,slackpkg,pkg,nix,apk;
+        # 3 npm,pip,gem,cargo,go,cabal;
+        # 4 flatpak,snap,appimage;
+        # 5 source;
+        # 6 DESCRIPTION
+
+        continue=1
+
+        # TODO: Keep track of OPM queued names and report when duplicates
+        # are attempted to be installed/queued.
+        #debug "EXISTS ${apt_queue_array}${zypper_queue_array}${dnf_queue_array}${npm_queue_array}${pip_queue_array}${gem_queue_array}${source_queue_array}"
+        #exists="$(echo "${apt_queue_array}${zypper_queue_array}${dnf_queue_array}${npm_queue_array}${pip_queue_array}${gem_queue_array}${source_queue_array}" \
+            #| grep -iE "(${OPM_DELIM}|^)${package}(${OPM_DELIM}|$)")"
+        #if [ -n "$exists" ]; then
+            #warn "$package is already queued, ignoring ..."
+            #continue=0
+        #fi
+
+        result_line="$(grep -m 1 -iE "^${package};" lookup)"
+        if [ -z "$result_line" ]; then
+            warn "No package matches $package, ignoring ..."
+            continue=0
+        fi
+
+        if [ "$continue" -ne 0 ]; then
+            apt_package="$(echo "$result_line" | awk -F',|;' '{ print $2 }')"
+            zypper_package="$(echo "$result_line" | awk -F',|;' '{ print $3 }')"
+            dnf_package="$(echo "$result_line" | awk -F',|;' '{ print $4 }')"
+            npm_package="$(echo "$result_line" | awk -F',|;' '{ print $11 }')"
+            pip_package="$(echo "$result_line" | awk -F',|;' '{ print $12 }')"
+            gem_package="$(echo "$result_line" | awk -F',|;' '{ print $13 }')"
+            source_package="$(echo "$result_line" | awk -F',|;' '{ print $20 }')"
+
+            if [ "$opm_apt" -ne 0 ] && [ "$apt_package" != "%" ]; then
+                apt_queue_array="${apt_package}${OPM_DELIM}${apt_queue_array}"
+            elif [ "$opm_zypper" -ne 0 ] && [ "$zypper_package" != "%" ]; then
+                zypper_queue_array="${zypper_package}${OPM_DELIM}${zypper_queue_array}"
+            elif [ "$opm_dnf" -ne 0 ] && [ "$dnf_package" != "%" ]; then
+                dnf_queue_array="${dnf_package}${OPM_DELIM}${dnf_queue_array}"
+            elif [ "$npm_package" != "%" ]; then
+                if [ "$opm_npm" -ne 0 ] || [ "$will_install_npm" -ne 0 ]; then
+                    npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
+                elif [ "$opm_npm" -eq 0 ] && [ "$will_install_npm" -eq 0 ]; then
+                    dependency_array="${OPM_DEFAULT_NODE}${OPM_DELIM}${dependency_array}"
+                    npm_queue_array="${npm_package}${OPM_DELIM}${npm_queue_array}"
+                fi
+            elif [ "$pip_package" != "%" ]; then
+                if [ "$opm_pip" -ne 0 ] || [ "$will_install_pip" -ne 0 ]; then
+                    pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
+                elif [ "$opm_pip" -eq 0 ] && [ "$will_install_pip" -eq 0 ]; then
+                    dependency_array="${OPM_DEFAULT_PYTHON}${OPM_DELIM}${dependency_array}"
+                    pip_queue_array="${pip_package}${OPM_DELIM}${pip_queue_array}"
+                fi
+            elif [ "$gem_package" != "%" ]; then
+                if [ "$opm_gem" -ne 0 ] || [ "$will_install_gem" -ne 0 ]; then
+                    gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
+                elif [ "$opm_gem" -eq 0 ] && [ "$will_install_gem" -eq 0 ]; then
+                    dependency_array="${OPM_DEFAULT_GEM}${OPM_DELIM}${dependency_array}"
+                    gem_queue_array="${gem_package}${OPM_DELIM}${gem_queue_array}"
+                fi
+            elif [ "$source_package" != "%" ]; then
+                source_queue_array="${package}${OPM_DELIM}${source_queue_array}"
+            else
+                warn "$package cannot be installed on this system."
+            fi
         fi
     done
 
-    queue_string=""
-    opm_queue_array="${opm_queue_array%%${OPM_DELIM}}"
-    IFS="$OPM_DELIM"
-    for item in $opm_queue_array; do
-        queue_string="$queue_string $item"
-    done
-    IFS=' '
+    if [ -n "$dependency_array" ]; then
+        IFS="${OPM_DELIM}"
+        for dependency in ${dependency_array}; do
+            if [ "$opm_apt" -ne 0 ]; then
+                info "Will install ${dependency} via APT as a dependency."
+                apt_queue_array="${dependency}${OPM_DELIM}${apt_queue_array}"
+            elif [ "$opm_zypper" -ne 0 ]; then
+                info "Will install ${dependency} via Zypper as a dependency."
+                zypper_queue_array="${dependency}${OPM_DELIM}${zypper_queue_array}"
+            elif [ "$opm_dnf" -ne 0 ]; then
+                info "Will install ${dependency} via DNF as a dependency."
+                dnf_queue_array="${dependency}${OPM_DELIM}${dnf_queue_array}"
+            else
+                info "Will install ${dependency} from source as a dependency."
+                source_queue_array="${dependency}${OPM_DELIM}${source_queue_array}"
+            fi
+        done
+        IFS=' '
+    fi
 
-    info "Queued: ${queue_string}"
+    apt_queue_string="$(printf '%s' "$apt_queue_array" | tr "${OPM_DELIM}" " ")"
+    zypper_queue_string="$(printf '%s' "$zypper_queue_array" | tr "${OPM_DELIM}" " ")"
+    dnf_queue_string="$(printf '%s' "$dnf_queue_array" | tr "${OPM_DELIM}" " ")"
+    npm_queue_string="$(printf '%s' "$npm_queue_array" | tr "${OPM_DELIM}" " ")"
+    pip_queue_string="$(printf '%s' "$pip_queue_array" | tr "${OPM_DELIM}" " ")"
+    gem_queue_string="$(printf '%s' "$gem_queue_array" | tr "${OPM_DELIM}" " ")"
+    source_queue_string="$(printf '%s' "$source_queue_array" | tr "${OPM_DELIM}" " ")"
+
+    info "Queued packages:"
+    none "APT: ${apt_queue_string}"
+    none "Zypper: ${zypper_queue_string}"
+    none "DNF: ${dnf_queue_string}"
+    none "NPM: ${npm_queue_string}"
+    none "Pip: ${pip_queue_string}"
+    none "Gem: ${gem_queue_string}"
+    none "Source: ${source_queue_string}"
 }
 
 opm_describe() {
@@ -753,7 +775,7 @@ opm_clean() {
         opm_init
     fi
 
-    warn "Not yet implemented."
+    debug "Not yet implemented."
 }
 
 opm_version() {
@@ -779,9 +801,9 @@ opm_query jdk
 opm_query jdk java
 opm_query JDK JAVA
 
-opm_queue jdk8
 opm_queue jdk8 git
+opm_queue ternjs
 
-opm_install jdk10 ternjs
+opm_install jdk10 nvm
 
 opm_upgrade

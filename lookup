@@ -15,8 +15,8 @@ ternjs;%,%,%,%,%,%,%,%,%;ternjs,%,%,%,%,%;%,%,%;%;a JavaScript code analyzer for
 jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,%,%,openjdk10,%;%,%,%,%,%,%;%,%,%,%;!;standard Java or Java compatible Development Kit
 jdk8;openjdk-8-jdk,java-1_8_0-openjdk,java-1.8.0-openjdk,jdk8-openjdk,%,%,openjdk8,%;%,%,%,%,%,%;%,%,%,%;!;OpenJDK Development Kit (JDK)
 nvm;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;simple bash script to manage multiple active node.js versions
-node;nodejs,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
-node10;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
-node8;nodejs,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
-node6;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+nodejs;nodejs,nodejs8,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+nodejs10;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+nodejs8;nodejs,nodejs8,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+nodejs6;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
 
