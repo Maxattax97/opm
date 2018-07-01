@@ -32,13 +32,11 @@ OPM_DEFAULT_RUBY="ruby"
 OPM_DELIM=':'
 
 # Options
-opt_opm_quiet=0
-opt_opm_lock_sudo=1
-opt_opm_parallel=1
-opt_opm_dry=1
-
-opt_quiet=0
-opt_noconfirm=0
+opm_opt_quiet=0
+opm_opt_lock_sudo=1
+opm_opt_parallel=1
+opm_opt_dry=1
+opm_opt_noconfirm=0
 
 # Data
 opm_apt=0
@@ -71,6 +69,7 @@ opm_source_queue_array=
 opm_npm_queue_array=
 opm_pip_queue_array=
 opm_gem_queue_array=
+opm_special_queue_array=
 
 opm_will_install_npm=0
 opm_will_install_pip=0
@@ -78,7 +77,7 @@ opm_will_install_gem=0
 
 # Logging
 msg() {
-    if [ "$opt_opm_quiet" -eq 0 ]; then
+    if [ "$opm_opt_quiet" -eq 0 ]; then
         if [ -n "$2" ] && [ "$2" -ne 0 ]; then
             printf '%b' "$1"
         else
@@ -134,7 +133,7 @@ silence() {
 }
 
 opm_dry_exec() {
-    if [ "$opt_opm_dry" -ne 0 ]; then
+    if [ "$opm_opt_dry" -ne 0 ]; then
         dry "$*"
     else
         eval "$@"
@@ -142,7 +141,7 @@ opm_dry_exec() {
 }
 
 opm_dry_elevated_exec() {
-    if [ "$opt_opm_dry" -ne 0 ]; then
+    if [ "$opm_opt_dry" -ne 0 ]; then
         dry "sudo $*"
     else
         eval sudo "$@"
@@ -179,13 +178,13 @@ opm_elevate() {
 }
 
 opm_refresh_sudo() {
-    if [ "$opt_opm_lock_sudo" -ne 0 ]; then
+    if [ "$opm_opt_lock_sudo" -ne 0 ]; then
         sudo -v
     fi
 }
 
 opm_end_sudo() {
-    if [ "$opt_opm_lock_sudo" -ne 0 ]; then
+    if [ "$opm_opt_lock_sudo" -ne 0 ]; then
         sudo -k
     fi
 }
@@ -238,13 +237,13 @@ opm_get_column_code() {
 }
 
 opm_print_enabled() {
-    if [ "$opt_opm_quiet" -eq 0 ]; then
+    if [ "$opm_opt_quiet" -eq 0 ]; then
         if [ "$1" -eq 1 ]; then
-            printf "${OPM_GREEN}${2}${OPM_RESET} "
+            printf "%s " "${OPM_GREEN}${2}${OPM_RESET}"
         elif [ "$1" -eq 0 ]; then
-            printf "${OPM_RED}${2}${OPM_RESET} "
+            printf "%s " "${OPM_RED}${2}${OPM_RESET}"
         else
-            printf "${OPM_YELLOW}${2}${OPM_RESET} "
+            printf "%s " "${OPM_YELLOW}${2}${OPM_RESET}"
         fi
     fi
 }
@@ -283,7 +282,7 @@ opm_init() {
         opm_print_enabled "$opm_gem" "gem"
         opm_print_enabled "$opm_pip" "pip"
 
-        if [ "$opt_opm_quiet" -eq 0 ]; then
+        if [ "$opm_opt_quiet" -eq 0 ]; then
         printf '\n'
         fi
 
@@ -292,7 +291,7 @@ opm_init() {
         opm_print_enabled "$opm_curl" "curl"
         opm_print_enabled "$opm_git" "git"
 
-        if [ "$opt_opm_quiet" -eq 0 ]; then
+        if [ "$opm_opt_quiet" -eq 0 ]; then
             printf '\n'
         fi
     else
@@ -330,10 +329,10 @@ opm_install() {
     if [ "$opm_apt" -ne 0 ] && [ -n "$apt_queue_string" ]; then
         info "Installing packages via APT ..."
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
-        if [ "$opt_noconfirm" -ne 0 ]; then
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
             args="$args -y"
         fi
 
@@ -345,10 +344,10 @@ opm_install() {
         info "Installing packages via DNF ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
-        if [ "$opt_noconfirm" -ne 0 ]; then
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
             args="$args --noconfirm"
         fi
 
@@ -360,10 +359,10 @@ opm_install() {
         info "Installing packages via Zypper ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
-        if [ "$opt_noconfirm" -ne 0 ]; then
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
             args="$args --non-interactive"
         fi
 
@@ -391,7 +390,7 @@ opm_install() {
         info "Installing packages via NPM ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             # --quiet prints errors.
             # --silent prints nothing.
             args="$args --quiet"
@@ -419,11 +418,11 @@ opm_refresh() {
     if [ "$opm_apt" -ne 0 ]; then
         info "Refreshing APT ..."
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
 
-        if [ "$opt_opm_parallel" -ne 0 ]; then
+        if [ "$opm_opt_parallel" -ne 0 ]; then
             opm_dry_elevated_exec apt-get $args update &
             jobs="${!}${OPM_DELIM}${jobs}"
             #jobs[job_count]=$!
@@ -438,11 +437,11 @@ opm_refresh() {
         info "Refreshing DNF ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
 
-        if [ "$opt_opm_parallel" -ne 0 ]; then
+        if [ "$opm_opt_parallel" -ne 0 ]; then
             opm_dry_elevated_exec dnf $args check-update &
             jobs="${!}${OPM_DELIM}${jobs}"
             #jobs[job_count]=$!
@@ -457,11 +456,11 @@ opm_refresh() {
         info "Refreshing Zypper ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
 
-        if [ "$opt_opm_parallel" -ne 0 ]; then
+        if [ "$opm_opt_parallel" -ne 0 ]; then
             opm_dry_elevated_exec zypper $args refresh &
             jobs="${!}${OPM_DELIM}${jobs}"
             #jobs[job_count]=$!
@@ -506,10 +505,10 @@ opm_upgrade() {
     if [ "$opm_apt" -ne 0 ]; then
         info "Upgrading APT ..."
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
-        if [ "$opt_noconfirm" -ne 0 ]; then
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
             args="$args -y"
         fi
 
@@ -521,10 +520,10 @@ opm_upgrade() {
         info "Upgrading DNF ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
-        if [ "$opt_noconfirm" -ne 0 ]; then
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
             args="$args --noconfirm"
         fi
 
@@ -536,10 +535,10 @@ opm_upgrade() {
         info "Upgrading Zypper ..."
 
         args=""
-        if [ "$opt_quiet" -ne 0 ]; then
+        if [ "$opm_opt_quiet" -ne 0 ]; then
             args="$args --quiet"
         fi
-        if [ "$opt_noconfirm" -ne 0 ]; then
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
             args="$args --non-interactive"
         fi
 
@@ -610,7 +609,7 @@ opm_query() {
     results="$(grep -iE "$search" lookup)"
 
     info "Results for: $*"
-    if [ "$opt_opm_quiet" -eq 0 ]; then
+    if [ "$opm_opt_quiet" -eq 0 ]; then
         echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | GREP_COLORS="${OPM_GREP_COLORS}" grep -iE --color "$search"
     fi
 }
@@ -686,7 +685,7 @@ opm_queue() {
                 if [ "$opm_gem" -ne 0 ] || [ "$opm_will_install_gem" -ne 0 ]; then
                     opm_gem_queue_array="${gem_package}${OPM_DELIM}${opm_gem_queue_array}"
                 elif [ "$opm_gem" -eq 0 ] && [ "$opm_will_install_gem" -eq 0 ]; then
-                    dependency_array="${OPM_DEFAULT_GEM}${OPM_DELIM}${dependency_array}"
+                    dependency_array="${OPM_DEFAULT_RUBY}${OPM_DELIM}${dependency_array}"
                     opm_gem_queue_array="${gem_package}${OPM_DELIM}${opm_gem_queue_array}"
                 fi
             elif [ "$source_package" != "%" ]; then
@@ -773,7 +772,7 @@ opm_describe() {
 
         opm_print_enabled "$(opm_get_column_code "$result" "source")" "source"
 
-        if [ "$opt_opm_quiet" -eq 0 ]; then
+        if [ "$opm_opt_quiet" -eq 0 ]; then
             printf '\n'
         fi
     else
