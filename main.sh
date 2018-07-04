@@ -65,15 +65,22 @@ opm_queue_array=
 opm_apt_queue_array=
 opm_zypper_queue_array=
 opm_dnf_queue_array=
-opm_source_queue_array=
+opm_special_queue_array=
 opm_npm_queue_array=
 opm_pip_queue_array=
 opm_gem_queue_array=
-opm_special_queue_array=
 
 opm_will_install_npm=0
 opm_will_install_pip=0
 opm_will_install_gem=0
+
+opm_apt_queue_string=
+opm_zypper_queue_string=
+opm_dnf_queue_string=
+opm_npm_queue_string=
+opm_pip_queue_string=
+opm_gem_queue_string=
+opm_special_queue_string=
 
 # Logging
 msg() {
@@ -100,6 +107,10 @@ warn() {
 
 error() {
     msg "${OPM_RED}${OPM_BLINK}[X]${OPM_RESET} ${1}${2}" "${3}"
+}
+
+query() {
+    msg "${OPM_MAGENTA}${OPM_BLINK}[?]${OPM_RESET} ${1}${2}" "1"
 }
 
 dry() {
@@ -130,6 +141,30 @@ check() {
 
 silence() {
     eval "$@" > /dev/null 2>&1
+}
+
+opm_confirm_code=2
+opm_confirm() {
+    continue=0
+    while [ "$continue" = 0 ]; do
+        if [ -n "$1" ]; then
+            query "${1} [y/N] "
+        else
+            query "Continue? [y/N] "
+        fi
+        read -r -p "" response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                continue=1
+                opm_confirm_code=1
+                ;;
+            [nN][oO]|[nN])
+                continue=1
+                opm_abort
+                opm_confirm_code=0
+                ;;
+        esac
+    done
 }
 
 opm_dry_exec() {
@@ -239,11 +274,11 @@ opm_get_column_code() {
 opm_print_enabled() {
     if [ "$opm_opt_quiet" -eq 0 ]; then
         if [ "$1" -eq 1 ]; then
-            printf "%s " "${OPM_GREEN}${2}${OPM_RESET}"
+            printf "${OPM_GREEN}${2}${OPM_RESET} "
         elif [ "$1" -eq 0 ]; then
-            printf "%s " "${OPM_RED}${2}${OPM_RESET}"
+            printf "${OPM_RED}${2}${OPM_RESET} "
         else
-            printf "%s " "${OPM_YELLOW}${2}${OPM_RESET}"
+            printf "${OPM_YELLOW}${2}${OPM_RESET} "
         fi
     fi
 }
@@ -326,7 +361,7 @@ opm_install() {
     # Order: Primary, {source}, secondary, tertiary (source is synchronous)
     # Short term modification: Everything is synchronous.
 
-    if [ "$opm_apt" -ne 0 ] && [ -n "$apt_queue_string" ]; then
+    if [ "$opm_apt" -ne 0 ] && [ -n "$opm_apt_queue_string" ]; then
         info "Installing packages via APT ..."
         args=""
         if [ "$opm_opt_quiet" -ne 0 ]; then
@@ -336,11 +371,11 @@ opm_install() {
             args="$args -y"
         fi
 
-        opm_dry_elevated_exec apt-get install $args $apt_queue_string
+        opm_dry_elevated_exec apt-get install $args $opm_apt_queue_string
         check "APT packages installed." "APT failed to install packages."
     fi
 
-    if [ "$opm_dnf" -ne 0 ] && [ -n "$dnf_queue_string" ]; then
+    if [ "$opm_dnf" -ne 0 ] && [ -n "$opm_dnf_queue_string" ]; then
         info "Installing packages via DNF ..."
 
         args=""
@@ -351,11 +386,11 @@ opm_install() {
             args="$args --noconfirm"
         fi
 
-        opm_dry_elevated_exec dnf install $args $dnf_queue_string
+        opm_dry_elevated_exec dnf install $args $opm_dnf_queue_string
         check "DNF packages installed." "DNF failed to install packages."
     fi
 
-    if [ "$opm_zypper" -ne 0 ] && [ -n "$zypper_queue_string" ]; then
+    if [ "$opm_zypper" -ne 0 ] && [ -n "$opm_zypper_queue_string" ]; then
         info "Installing packages via Zypper ..."
 
         args=""
@@ -366,9 +401,43 @@ opm_install() {
             args="$args --non-interactive"
         fi
 
-        opm_dry_elevated_exec zypper install $args $zypper_queue_string
+        opm_dry_elevated_exec zypper install $args $opm_zypper_queue_string
         check "Zypper packages installed." "Zypper failed to install packages."
     fi
+
+
+
+    if [ -n "$opm_special_queue_array" ]; then
+        IFS="${OPM_DELIM}"
+        for package in ${opm_special_queue_array}; do
+            if [ "$opm_apt" -ne 0 ]; then
+                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via APT as a dependency."
+                opm_apt_queue_array="${dependency}${OPM_DELIM}${opm_apt_queue_array}"
+            elif [ "$opm_zypper" -ne 0 ]; then
+                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via Zypper as a dependency."
+                opm_zypper_queue_array="${dependency}${OPM_DELIM}${opm_zypper_queue_array}"
+            elif [ "$opm_dnf" -ne 0 ]; then
+                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via DNF as a dependency."
+                opm_dnf_queue_array="${dependency}${OPM_DELIM}${opm_dnf_queue_array}"
+            else
+                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} from source as a dependency."
+                opm_special_queue_array="${dependency}${OPM_DELIM}${opm_special_queue_array}"
+            fi
+
+            if [ "${dependency}" = "${OPM_DEFAULT_NODE}" ]; then
+                opm_will_install_npm=1
+            fi
+            if [ "${dependency}" = "${OPM_DEFAULT_PIP}" ]; then
+                opm_will_install_pip=1
+            fi
+            if [ "${dependency}" = "${OPM_DEFAULT_GEM}" ]; then
+                opm_will_install_gem=1
+            fi
+        done
+        IFS=' '
+    fi
+
+
 
     # TODO: Enable freshly installed package managers (e.g. npm, pip, gem).
     if [ "$opm_will_install_npm" -ne 0 ]; then
@@ -385,8 +454,9 @@ opm_install() {
     fi
 
 
+
     # These package managers must install _globally_.
-    if [ "$opm_npm" -ne 0 ] && [ -n "$npm_queue_string" ]; then
+    if [ "$opm_npm" -ne 0 ] && [ -n "$opm_npm_queue_string" ]; then
         info "Installing packages via NPM ..."
 
         args=""
@@ -397,12 +467,75 @@ opm_install() {
         fi
         # NPM does not offer a non-interactive argument.
 
-        opm_dry_exec npm install -g $args $npm_queue_string
+        opm_dry_exec npm install -g $args $opm_npm_queue_string
         check "NPM packages installed." "NPM failed to install packages."
     fi
 
     # Gem refreshes on its own.
     # Pip refreshes on its own.
+}
+
+# Split the package and installer before feeding.
+opm_install_special() {
+    package="$1"
+    manager="$2"
+    category=
+
+    if [ -z "$package" ]; then
+        opm_abort "A package must be specified ($1 $2)"
+    fi
+
+    if [ -z "$manager" ]; then
+        opm_abort "A manager must be specified ($1 $2)"
+    elif [ "$manager" = "apt" ] || [ "$manager" = "zypper" ] || [ "$manager" = "dnf" ]; then
+        category="primary"
+    elif [ "$manager" = "npm" ] || [ "$manager" = "pip" ] || [ "$manager" = "gem" ]; then
+        category="secondary"
+    elif [ "$manager" = "flatpak" ] || [ "$manager" = "snap" ]; then
+        category="tertiary"
+    else
+        category="source"
+    fi
+
+    uri_path="packages/${category}/${manager}/${package}"
+
+    if [ "$opm_wget" -ne 0 ]; then
+        opm_dry_exec wget -O /tmp/OPM_INSTALL "${OPM_REPO_RAW_ROOT}/master/${uri_path}"
+
+        check "Downloaded installation script." "Failed to download installation script."
+    elif [ "$opm_curl" -ne 0 ]; then
+        opm_dry_exec curl -o /tmp/OPM_INSTALL "${OPM_REPO_RAW_ROOT}/master/${uri_path}"
+
+        check "Downloaded installation script." "Failed to download installation script."
+    elif [ "$opm_git" -ne 0 ]; then
+        opm_dry_exec git clone "${OPM_REPO_ROOT}" /tmp/opm/
+
+        check "Fetched latest resources." "Failed to fetch resources."
+        opm_dry_exec cp "/tmp/opm/${uri_path}" /tmp/OPM_INSTALL
+    else
+        error "No tools are available on this system to fetch remote resources."
+    fi
+
+    info "Previewing installation script ..."
+    if [ "$(opm_probe most)" -ne 0 ]; then
+        most /tmp/OPM_INSTALL
+    elif [ "$(opm_probe less)" -ne 0 ]; then
+        less /tmp/OPM_INSTALL
+    elif [ "$(opm_probe more)" -ne 0 ]; then
+        more /tmp/OPM_INSTALL
+    else
+        cat /tmp/OPM_INSTALL
+    fi
+
+    opm_confirm "Continue installing ${OPM_BLUE}$1${OPM_RESET}?"
+
+    if [ "$opm_confirm_code" -ne 0 ]; then
+        info "Beginning to install ${OPM_BLUE}$1${OPM_RESET} ..."
+        /tmp/OPM_INSTALL
+        check "Installation successful." "Installation failed."
+    else
+        warn "Aborting installation of ${OPM_BLUE}${1}${OPM_RESET}."
+    fi
 }
 
 opm_refresh() {
@@ -648,7 +781,7 @@ opm_queue() {
 
         result_line="$(grep -m 1 -iE "^${package};" lookup)"
         if [ -z "$result_line" ]; then
-            warn "No package matches $package, ignoring ..."
+            warn "No package matches ${OPM_BLUE}$package${OPM_RESET}, ignoring ..."
             continue=0
         fi
 
@@ -662,9 +795,17 @@ opm_queue() {
             source_package="$(echo "$result_line" | awk -F',|;' '{ print $20 }')"
 
             if [ "$opm_apt" -ne 0 ] && [ "$apt_package" != "%" ]; then
-                opm_apt_queue_array="${apt_package}${OPM_DELIM}${opm_apt_queue_array}"
+                if [ "$apt_package" = "!" ]; then
+                    opm_special_queue_array="${package}_apt${OPM_DELIM}${opm_special_queue_array}"
+                else
+                    opm_apt_queue_array="${apt_package}${OPM_DELIM}${opm_apt_queue_array}"
+                fi
             elif [ "$opm_zypper" -ne 0 ] && [ "$zypper_package" != "%" ]; then
-                opm_zypper_queue_array="${zypper_package}${OPM_DELIM}${opm_zypper_queue_array}"
+                if [ "$zypper_package" = "!" ]; then
+                    opm_special_queue_array="${package}_zypper${OPM_DELIM}${opm_special_queue_array}"
+                else
+                    opm_zypper_queue_array="${zypper_package}${OPM_DELIM}${opm_zypper_queue_array}"
+                fi
             elif [ "$opm_dnf" -ne 0 ] && [ "$dnf_package" != "%" ]; then
                 opm_dnf_queue_array="${dnf_package}${OPM_DELIM}${opm_dnf_queue_array}"
             elif [ "$npm_package" != "%" ]; then
@@ -689,7 +830,7 @@ opm_queue() {
                     opm_gem_queue_array="${gem_package}${OPM_DELIM}${opm_gem_queue_array}"
                 fi
             elif [ "$source_package" != "%" ]; then
-                opm_source_queue_array="${package}${OPM_DELIM}${opm_source_queue_array}"
+                opm_special_queue_array="${package}${OPM_DELIM}${opm_special_queue_array}"
             else
                 warn "$package cannot be installed on this system."
             fi
@@ -710,7 +851,7 @@ opm_queue() {
                 opm_dnf_queue_array="${dependency}${OPM_DELIM}${opm_dnf_queue_array}"
             else
                 info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} from source as a dependency."
-                opm_source_queue_array="${dependency}${OPM_DELIM}${opm_source_queue_array}"
+                opm_special_queue_array="${dependency}${OPM_DELIM}${opm_special_queue_array}"
             fi
 
             if [ "${dependency}" = "${OPM_DEFAULT_NODE}" ]; then
@@ -726,22 +867,22 @@ opm_queue() {
         IFS=' '
     fi
 
-    apt_queue_string="$(printf '%s' "$opm_apt_queue_array" | tr "${OPM_DELIM}" " ")"
-    zypper_queue_string="$(printf '%s' "$opm_zypper_queue_array" | tr "${OPM_DELIM}" " ")"
-    dnf_queue_string="$(printf '%s' "$opm_dnf_queue_array" | tr "${OPM_DELIM}" " ")"
-    npm_queue_string="$(printf '%s' "$opm_npm_queue_array" | tr "${OPM_DELIM}" " ")"
-    pip_queue_string="$(printf '%s' "$opm_pip_queue_array" | tr "${OPM_DELIM}" " ")"
-    gem_queue_string="$(printf '%s' "$opm_gem_queue_array" | tr "${OPM_DELIM}" " ")"
-    source_queue_string="$(printf '%s' "$opm_source_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_apt_queue_string="$(printf '%s' "$opm_apt_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_zypper_queue_string="$(printf '%s' "$opm_zypper_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_dnf_queue_string="$(printf '%s' "$opm_dnf_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_npm_queue_string="$(printf '%s' "$opm_npm_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_pip_queue_string="$(printf '%s' "$opm_pip_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_gem_queue_string="$(printf '%s' "$opm_gem_queue_array" | tr "${OPM_DELIM}" " ")"
+    opm_special_queue_string="$(printf '%s' "$opm_special_queue_array" | tr "${OPM_DELIM}" " ")"
 
     success "Queued packages:"
-    none "APT: ${apt_queue_string}"
-    none "Zypper: ${zypper_queue_string}"
-    none "DNF: ${dnf_queue_string}"
-    none "NPM: ${npm_queue_string}"
-    none "Pip: ${pip_queue_string}"
-    none "Gem: ${gem_queue_string}"
-    none "Source: ${source_queue_string}"
+    none "APT: ${opm_apt_queue_string}"
+    none "Zypper: ${opm_zypper_queue_string}"
+    none "DNF: ${opm_dnf_queue_string}"
+    none "NPM: ${opm_npm_queue_string}"
+    none "Pip: ${opm_pip_queue_string}"
+    none "Gem: ${opm_gem_queue_string}"
+    none "Special: ${opm_special_queue_string}"
 }
 
 opm_describe() {
@@ -776,7 +917,7 @@ opm_describe() {
             printf '\n'
         fi
     else
-        warn "No entries were found for $1."
+        warn "No entries were found for ${OPM_BLUE}$1${OPM_RESET}."
     fi
 }
 
@@ -819,3 +960,4 @@ opm_queue ternjs
 opm_install jdk10 nvm
 
 opm_upgrade
+
