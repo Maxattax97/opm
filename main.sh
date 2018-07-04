@@ -160,7 +160,6 @@ opm_confirm() {
                 ;;
             [nN][oO]|[nN])
                 continue=1
-                opm_abort
                 opm_confirm_code=0
                 ;;
         esac
@@ -410,29 +409,11 @@ opm_install() {
     if [ -n "$opm_special_queue_array" ]; then
         IFS="${OPM_DELIM}"
         for package in ${opm_special_queue_array}; do
-            if [ "$opm_apt" -ne 0 ]; then
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via APT as a dependency."
-                opm_apt_queue_array="${dependency}${OPM_DELIM}${opm_apt_queue_array}"
-            elif [ "$opm_zypper" -ne 0 ]; then
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via Zypper as a dependency."
-                opm_zypper_queue_array="${dependency}${OPM_DELIM}${opm_zypper_queue_array}"
-            elif [ "$opm_dnf" -ne 0 ]; then
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via DNF as a dependency."
-                opm_dnf_queue_array="${dependency}${OPM_DELIM}${opm_dnf_queue_array}"
-            else
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} from source as a dependency."
-                opm_special_queue_array="${dependency}${OPM_DELIM}${opm_special_queue_array}"
-            fi
-
-            if [ "${dependency}" = "${OPM_DEFAULT_NODE}" ]; then
-                opm_will_install_npm=1
-            fi
-            if [ "${dependency}" = "${OPM_DEFAULT_PIP}" ]; then
-                opm_will_install_pip=1
-            fi
-            if [ "${dependency}" = "${OPM_DEFAULT_GEM}" ]; then
-                opm_will_install_gem=1
-            fi
+            package_arg_1="$(echo "$package" | awk -F'_' '{ print $1 }')"
+            package_arg_2="$(echo "$package" | awk -F'_' '{ print $2 }')"
+            IFS=' '
+            opm_install_special "$package_arg_1" "$package_arg_2"
+            IFS="${OPM_DELIM}"
         done
         IFS=' '
     fi
@@ -441,14 +422,17 @@ opm_install() {
 
     # TODO: Enable freshly installed package managers (e.g. npm, pip, gem).
     if [ "$opm_will_install_npm" -ne 0 ]; then
+        opm_will_install_npm=0
         opm_npm=1
         info "NPM has been installed and enabled."
     fi
     if [ "$opm_will_install_pip" -ne 0 ]; then
+        opm_will_install_pip=0
         opm_pip=1
         info "Pip has been installed and enabled."
     fi
     if [ "$opm_will_install_gem" -ne 0 ]; then
+        opm_will_install_gem=0
         opm_gem=1
         info "Gem has been installed and enabled."
     fi
@@ -482,11 +466,13 @@ opm_install_special() {
     category=
 
     if [ -z "$package" ]; then
-        opm_abort "A package must be specified ($1 $2)"
+        error "A package must be specified ($1 $2)"
+        opm_abort
     fi
 
     if [ -z "$manager" ]; then
-        opm_abort "A manager must be specified ($1 $2)"
+        error "A manager must be specified ($1 $2)"
+        opm_abort
     elif [ "$manager" = "apt" ] || [ "$manager" = "zypper" ] || [ "$manager" = "dnf" ]; then
         category="primary"
     elif [ "$manager" = "npm" ] || [ "$manager" = "pip" ] || [ "$manager" = "gem" ]; then
@@ -497,45 +483,58 @@ opm_install_special() {
         category="source"
     fi
 
-    uri_path="packages/${category}/${manager}/${package}"
-
-    if [ "$opm_wget" -ne 0 ]; then
-        opm_dry_exec wget -O /tmp/OPM_INSTALL "${OPM_REPO_RAW_ROOT}/master/${uri_path}"
-
-        check "Downloaded installation script." "Failed to download installation script."
-    elif [ "$opm_curl" -ne 0 ]; then
-        opm_dry_exec curl -o /tmp/OPM_INSTALL "${OPM_REPO_RAW_ROOT}/master/${uri_path}"
-
-        check "Downloaded installation script." "Failed to download installation script."
-    elif [ "$opm_git" -ne 0 ]; then
-        opm_dry_exec git clone "${OPM_REPO_ROOT}" /tmp/opm/
-
-        check "Fetched latest resources." "Failed to fetch resources."
-        opm_dry_exec cp "/tmp/opm/${uri_path}" /tmp/OPM_INSTALL
+    if [ "$manager" = "source" ]; then
+        uri_path="packages/${category}/${package}"
     else
-        error "No tools are available on this system to fetch remote resources."
+        uri_path="packages/${category}/${manager}/${package}"
     fi
 
-    info "Previewing installation script ..."
-    if [ "$(opm_probe most)" -ne 0 ]; then
-        most /tmp/OPM_INSTALL
-    elif [ "$(opm_probe less)" -ne 0 ]; then
-        less /tmp/OPM_INSTALL
-    elif [ "$(opm_probe more)" -ne 0 ]; then
-        more /tmp/OPM_INSTALL
-    else
-        cat /tmp/OPM_INSTALL
-    fi
+    break_loop=0
+    while [ "$break_loop" -eq 0 ]; do
+        if [ "$opm_wget" -ne 0 ]; then
+            debug "Re-enable dry mode"
+            wget -O /tmp/OPM_INSTALL "${OPM_REPO_RAW_ROOT}/master/${uri_path}"
+        elif [ "$opm_curl" -ne 0 ]; then
+            opm_dry_exec curl -o /tmp/OPM_INSTALL "${OPM_REPO_RAW_ROOT}/master/${uri_path}"
+        elif [ "$opm_git" -ne 0 ]; then
+            opm_dry_exec git clone "${OPM_REPO_ROOT}" /tmp/opm/
+            opm_dry_exec cp "/tmp/opm/${uri_path}" /tmp/OPM_INSTALL
+        else
+            error "No tools are available on this system to fetch remote resources."
+        fi
 
-    opm_confirm "Continue installing ${OPM_BLUE}$1${OPM_RESET}?"
+        if [ -s /tmp/OPM_INSTALL ]; then
+            info "Previewing installation script ..."
+            if [ "$(opm_probe most)" -ne 0 ]; then
+                most /tmp/OPM_INSTALL
+            elif [ "$(opm_probe less)" -ne 0 ]; then
+                less /tmp/OPM_INSTALL
+            elif [ "$(opm_probe more)" -ne 0 ]; then
+                more /tmp/OPM_INSTALL
+            else
+                cat /tmp/OPM_INSTALL
+            fi
 
-    if [ "$opm_confirm_code" -ne 0 ]; then
-        info "Beginning to install ${OPM_BLUE}$1${OPM_RESET} ..."
-        /tmp/OPM_INSTALL
-        check "Installation successful." "Installation failed."
-    else
-        warn "Aborting installation of ${OPM_BLUE}${1}${OPM_RESET}."
-    fi
+            opm_confirm "Continue installing ${OPM_BLUE}$1${OPM_RESET}?"
+
+            if [ "$opm_confirm_code" -ne 0 ]; then
+                info "Beginning to install ${OPM_BLUE}$1${OPM_RESET} ..."
+                chmod +x /tmp/OPM_INSTALL
+                opm_elevate /tmp/OPM_INSTALL
+                check "Installation successful." "Installation failed."
+                break_loop=1;
+            else
+                warn "Aborting installation of ${OPM_BLUE}${1}${OPM_RESET}."
+                break_loop=1;
+            fi
+        else
+            error "Failed to download the installer script for ${OPM_BLUE}$1${OPM_RESET}"
+            opm_confirm "Retry?"
+            if [ "$opm_confirm_code" -eq 0 ]; then
+                break_loop=1;
+            fi
+        fi
+    done
 }
 
 opm_refresh() {
@@ -830,7 +829,7 @@ opm_queue() {
                     opm_gem_queue_array="${gem_package}${OPM_DELIM}${opm_gem_queue_array}"
                 fi
             elif [ "$source_package" != "%" ]; then
-                opm_special_queue_array="${package}${OPM_DELIM}${opm_special_queue_array}"
+                opm_special_queue_array="${package}_source${OPM_DELIM}${opm_special_queue_array}"
             else
                 warn "$package cannot be installed on this system."
             fi
@@ -957,7 +956,10 @@ opm_query JDK JAVA
 opm_queue jdk8 git
 opm_queue ternjs
 
-opm_install jdk10 nvm
+opm_install jdk10
+
+opm_install hello
+opm_install nvm
 
 opm_upgrade
 

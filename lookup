@@ -19,4 +19,5 @@ nodejs;nodejs,nodejs8,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javas
 nodejs10;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
 nodejs8;nodejs,nodejs8,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
 nodejs6;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;evented I/O for V8 javascript
+hello;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;very basic hello world installer
 
