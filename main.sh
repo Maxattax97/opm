@@ -11,14 +11,15 @@ fi
 export OPM_LIB_VERSION="0.0.1"
 OPM_DEBUG=1
 
-OPM_RED='\033[0;91m'
-OPM_GREEN='\033[0;92m'
-OPM_YELLOW='\033[0;93m'
-OPM_BLUE='\033[0;94m'
-OPM_MAGENTA='\033[0;95m'
-OPM_CYAN='\033[0;96m'
-OPM_RESET='\033[0m'
-OPM_BLINK='\033[5m'
+OPM_RED() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;91m'; fi; }
+OPM_GREEN() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;92m'; fi; }
+OPM_YELLOW() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;93m'; fi; }
+OPM_BLUE() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;94m'; fi; }
+OPM_MAGENTA() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;95m'; fi; }
+OPM_CYAN() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;96m'; fi; }
+OPM_RESET() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0m'; fi; }
+OPM_BLINK() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[5m'; fi; }
+OPM_HIGHLIGHT() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;94m'; fi; }
 OPM_GREP_COLORS='ms=01;94'
 # TODO: Add option for no-color mode.
 
@@ -33,6 +34,7 @@ OPM_DELIM=':'
 
 # Options
 opm_opt_quiet=0
+opm_opt_nocolor=0
 opm_opt_lock_sudo=1
 opm_opt_parallel=1
 opm_opt_dry=1
@@ -53,6 +55,8 @@ opm_pip=0
 opm_wget=0
 opm_curl=0
 opm_git=0
+
+opm_os="LINUX"
 
 opm_init_complete=0
 opm_fetch_complete=0
@@ -94,27 +98,27 @@ msg() {
 }
 
 success() {
-    msg "${OPM_GREEN}[*]${OPM_RESET} ${1}${2}" "${3}"
+    msg "$(OPM_GREEN)[*]$(OPM_RESET) ${1}${2}" "${3}"
 }
 
 info() {
-    msg "${OPM_BLUE}[~]${OPM_RESET} ${1}${2}" "${3}"
+    msg "$(OPM_BLUE)[~]$(OPM_RESET) ${1}${2}" "${3}"
 }
 
 warn() {
-    msg "${OPM_YELLOW}[!]${OPM_RESET} ${1}${2}" "${3}"
+    msg "$(OPM_YELLOW)[!]$(OPM_RESET) ${1}${2}" "${3}"
 }
 
 error() {
-    msg "${OPM_RED}${OPM_BLINK}[X]${OPM_RESET} ${1}${2}" "${3}"
+    msg "$(OPM_RED)$(OPM_BLINK)[X]$(OPM_RESET) ${1}${2}" "${3}"
 }
 
 query() {
-    msg "${OPM_MAGENTA}${OPM_BLINK}[?]${OPM_RESET} ${1}${2}" "1"
+    msg "$(OPM_MAGENTA)$(OPM_BLINK)[?]$(OPM_RESET) ${1}${2}" "1"
 }
 
 dry() {
-    msg "${OPM_MAGENTA} > ${OPM_RESET} ${1}${2}" "${3}"
+    msg "$(OPM_MAGENTA) > $(OPM_RESET) ${1}${2}" "${3}"
 }
 
 none() {
@@ -123,7 +127,7 @@ none() {
 
 debug() {
     if [ "$OPM_DEBUG" -ne 0 ]; then
-        msg "${OPM_CYAN}${OPM_BLINK}[#]${OPM_RESET} ${1}${2}" "${3}"
+        msg "$(OPM_CYAN)$(OPM_BLINK)[#]$(OPM_RESET) ${1}${2}" "${3}"
     fi
 }
 
@@ -273,11 +277,11 @@ opm_get_column_code() {
 opm_print_enabled() {
     if [ "$opm_opt_quiet" -eq 0 ]; then
         if [ "$1" -eq 1 ]; then
-            printf "${OPM_GREEN}${2}${OPM_RESET} "
+            printf "$(OPM_GREEN)${2}$(OPM_RESET) "
         elif [ "$1" -eq 0 ]; then
-            printf "${OPM_RED}${2}${OPM_RESET} "
+            printf "$(OPM_RED)${2}$(OPM_RESET) "
         else
-            printf "${OPM_YELLOW}${2}${OPM_RESET} "
+            printf "$(OPM_YELLOW)${2}$(OPM_RESET) "
         fi
     fi
 }
@@ -285,7 +289,7 @@ opm_print_enabled() {
 # OPM Externals
 opm_init() {
     # Check interpretter
-    warn "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
+    debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
 
     # Probe for available package managers.
     opm_apt="$(opm_probe apt)"
@@ -295,6 +299,8 @@ opm_init() {
     opm_portage="$(opm_probe emerge)"
     opm_slackpkg="$(opm_probe slackpkg)"
     opm_nix="$(opm_probe nix)"
+
+    # Sometimes these managers are hidden due to lazy loading (e.g. by NVM)
     opm_npm="$(opm_probe npm)"
     opm_gem="$(opm_probe gem)"
     opm_pip="$(opm_probe pip)"
@@ -331,6 +337,11 @@ opm_init() {
     else
         error "Failed to discover any package managers."
         opm_abort
+    fi
+
+    opm_detect_os
+    if [ -n "$opm_os" ]; then
+        info "Detected this OS to be $(OPM_HIGHLIGHT)${opm_os}$(OPM_RESET)."
     fi
 
     opm_init_complete=1
@@ -457,6 +468,27 @@ opm_install() {
 
     # Gem refreshes on its own.
     # Pip refreshes on its own.
+
+    # Wipe all installation data.
+    opm_apt_queue_array=
+    opm_zypper_queue_array=
+    opm_dnf_queue_array=
+    opm_special_queue_array=
+    opm_npm_queue_array=
+    opm_pip_queue_array=
+    opm_gem_queue_array=
+
+    opm_will_install_npm=0
+    opm_will_install_pip=0
+    opm_will_install_gem=0
+
+    opm_apt_queue_string=
+    opm_zypper_queue_string=
+    opm_dnf_queue_string=
+    opm_npm_queue_string=
+    opm_pip_queue_string=
+    opm_gem_queue_string=
+    opm_special_queue_string=
 }
 
 # Split the package and installer before feeding.
@@ -515,20 +547,20 @@ opm_install_special() {
                 cat /tmp/OPM_INSTALL
             fi
 
-            opm_confirm "Continue installing ${OPM_BLUE}$1${OPM_RESET}?"
+            opm_confirm "Continue installing $(OPM_HIGHLIGHT)$1$(OPM_RESET)?"
 
             if [ "$opm_confirm_code" -ne 0 ]; then
-                info "Beginning to install ${OPM_BLUE}$1${OPM_RESET} ..."
+                info "Beginning to install $(OPM_HIGHLIGHT)$1$(OPM_RESET) ..."
                 chmod +x /tmp/OPM_INSTALL
                 opm_elevate /tmp/OPM_INSTALL
                 check "Installation successful." "Installation failed."
                 break_loop=1;
             else
-                warn "Aborting installation of ${OPM_BLUE}${1}${OPM_RESET}."
+                warn "Aborting installation of $(OPM_HIGHLIGHT)${1}$(OPM_RESET)."
                 break_loop=1;
             fi
         else
-            error "Failed to download the installer script for ${OPM_BLUE}$1${OPM_RESET}"
+            error "Failed to download the installer script for $(OPM_HIGHLIGHT)$1$(OPM_RESET)"
             opm_confirm "Retry?"
             if [ "$opm_confirm_code" -eq 0 ]; then
                 break_loop=1;
@@ -738,11 +770,15 @@ opm_query() {
     done
     search="${search%%|}"
 
-    results="$(grep -iE "$search" lookup)"
+    results="$(grep -iE "$search" "$opm_lookup_path")"
 
     info "Results for: $*"
     if [ "$opm_opt_quiet" -eq 0 ]; then
-        echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | GREP_COLORS="${OPM_GREP_COLORS}" grep -iE --color "$search"
+        if [ "$opm_opt_nocolor" -eq 0 ]; then
+            echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | GREP_COLORS="${OPM_GREP_COLORS}" grep -iE --color "$search"
+        else
+            echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | grep -iE "$search"
+        fi
     fi
 }
 
@@ -778,9 +814,9 @@ opm_queue() {
             #continue=0
         #fi
 
-        result_line="$(grep -m 1 -iE "^${package};" lookup)"
+        result_line="$(grep -m 1 -iE "^${package};" "$opm_lookup_path")"
         if [ -z "$result_line" ]; then
-            warn "No package matches ${OPM_BLUE}$package${OPM_RESET}, ignoring ..."
+            warn "No package matches $(OPM_HIGHLIGHT)$package$(OPM_RESET), ignoring ..."
             continue=0
         fi
 
@@ -840,17 +876,17 @@ opm_queue() {
         IFS="${OPM_DELIM}"
         for dependency in ${dependency_array}; do
             if [ "$opm_apt" -ne 0 ]; then
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via APT as a dependency."
-                opm_apt_queue_array="${dependency}${OPM_DELIM}${opm_apt_queue_array}"
+                info "Will install $(OPM_HIGHLIGHT)${dependency}$(OPM_RESET) via APT as a dependency."
+                opm_apt_queue_array="${dependency}$(OPM_DELIM)${opm_apt_queue_array}"
             elif [ "$opm_zypper" -ne 0 ]; then
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via Zypper as a dependency."
-                opm_zypper_queue_array="${dependency}${OPM_DELIM}${opm_zypper_queue_array}"
+                info "Will install $(OPM_HIGHLIGHT)${dependency}$(OPM_RESET) via Zypper as a dependency."
+                opm_zypper_queue_array="${dependency}$(OPM_DELIM)${opm_zypper_queue_array}"
             elif [ "$opm_dnf" -ne 0 ]; then
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} via DNF as a dependency."
-                opm_dnf_queue_array="${dependency}${OPM_DELIM}${opm_dnf_queue_array}"
+                info "Will install $(OPM_HIGHLIGHT)${dependency}$(OPM_RESET) via DNF as a dependency."
+                opm_dnf_queue_array="${dependency}$(OPM_DELIM)${opm_dnf_queue_array}"
             else
-                info "Will install ${OPM_BLUE}${dependency}${OPM_RESET} from source as a dependency."
-                opm_special_queue_array="${dependency}${OPM_DELIM}${opm_special_queue_array}"
+                info "Will install $(OPM_HIGHLIGHT)${dependency}$(OPM_RESET) from source as a dependency."
+                opm_special_queue_array="${dependency}$(OPM_DELIM)${opm_special_queue_array}"
             fi
 
             if [ "${dependency}" = "${OPM_DEFAULT_NODE}" ]; then
@@ -894,7 +930,7 @@ opm_describe() {
         opm_init
     fi
 
-    result="$(awk -F';' "BEGIN{IGNORECASE = 1}\$1 ~ /^$1$/ { print };" lookup)"
+    result="$(awk -F';' "BEGIN{IGNORECASE = 1}\$1 ~ /^$1$/ { print };" "$opm_lookup_path")"
 
     if [ -n "$result" ]; then
         name="$(echo "$result" | awk -F';' '{ print $1 };')"
@@ -916,7 +952,7 @@ opm_describe() {
             printf '\n'
         fi
     else
-        warn "No entries were found for ${OPM_BLUE}$1${OPM_RESET}."
+        warn "No entries were found for $(OPM_HIGHLIGHT)$1$(OPM_RESET)."
     fi
 }
 
@@ -932,34 +968,179 @@ opm_version() {
     info "Omni Package Manager v${OPM_LIB_VERSION}"
 }
 
-opm_version
+# Based on some code contributed to Powerlevel9K
+# https://github.com/bhilburn/powerlevel9k/blob/next/functions/utilities.zsh
+opm_detect_os() {
+    case "$(uname)" in
+        Darwin)
+            opm_os="OSX"
+            ;;
+        CYGWIN_NT-* | MSYS_NT-*)
+            opm_os="WINDOWS"
+            ;;
+        FreeBSD)
+            opm_os="FREE_BSD"
+            ;;
+        OpenBSD)
+            opm_os="OPEN_BSD"
+            ;;
+        DragonFly)
+            opm_os="DRAGONFLY_BSD"
+            ;;
+        Linux)
+            opm_os="UNKNOWN_LINUX"
+            os_release_id="$(grep -E '^ID=([a-zA-Z]*)' /etc/os-release | cut -d '=' -f 2)"
+            case "$os_release_id" in
+                *arch*)
+                    opm_os="ARCH_LINUX"
+                    ;;
+                *debian*)
+                    opm_os="DEBIAN_LINUX"
+                    ;;
+                *ubuntu*)
+                    opm_os="UBUNTU_LINUX"
+                    ;;
+                *elementary*)
+                    opm_os="ELEMENTARY_LINUX"
+                    ;;
+                *fedora*)
+                    opm_os="FEDORA_LINUX"
+                    ;;
+                *coreos*)
+                    opm_os="COREOS_LINUX"
+                    ;;
+                *gentoo*)
+                    opm_os="GENTOO_LINUX"
+                    ;;
+                *mageia*)
+                    opm_os="MAGEIA_LINUX"
+                    ;;
+                *centos*)
+                    opm_os="CENTOS_LINUX"
+                    ;;
+                *opensuse*|*tumbleweed*)
+                    opm_os="OPENSUSE_LINUX"
+                    ;;
+                *sabayon*)
+                    opm_os="SABAYON_LINUX"
+                    ;;
+                *slackware*)
+                    opm_os="SLACKWARE_LINUX"
+                    ;;
+                *linuxmint*)
+                    opm_os="MINT_LINUX"
+                    ;;
+                *alpine*)
+                    opm_os="ALPINE_LINUX"
+                    ;;
+                *aosc*)
+                    opm_os="AOSC_LINUX"
+                    ;;
+                *nixos*)
+                    opm_os="NIXOS_LINUX"
+                    ;;
+                *devuan*)
+                    opm_os="DEVUAN_LINUX"
+                    ;;
+                *manjaro*)
+                    opm_os="MANJARO_LINUX"
+                    ;;
+                *)
+                    opm_os='UNKNOWN_LINUX'
+                    error "Unable to determine Linux distribution."
+                    ;;
+            esac
 
-opm_init
+            # Check if we're running on Android
+            case $(uname -o 2>/dev/null) in
+                Android)
+                    opm_os="ANDROID"
+                    ;;
+            esac
+            ;;
+        SunOS)
+            opm_os="SOLARIS"
+            ;;
+        *)
+            opm_os="UNKNOWN"
+            error "Unable to determine operating system."
+            ;;
+    esac
+}
 
-opm_fetch
+opm_cli() {
+    command="$1"
 
-opm_refresh
+    if [ -n "$command" ]; then
+        case "$command" in
+            version)
+                opm_version
+                ;;
+            fetch)
+                opm_fetch
+                ;;
+            refresh)
+                opm_refresh
+                ;;
+            upgrade)
+                opm_upgrade
+                ;;
+            describe)
+                opm_describe "$2"
+                ;;
+            query)
+                shift
+                opm_query "$@"
+                ;;
+            queue)
+                shift
+                opm_queue "$@"
+                ;;
+            install)
+                shift
+                opm_install "$@"
+                ;;
+            init)
+                opm_init
+                ;;
+            help)
+                info "Available subcommands: $(OPM_HIGHLIGHT)version init fetch refresh describe query queue install upgrade$(OPM_RESET)"
+                ;;
+            *)
+            error "Unrecognized command: $(OPM_HIGHLIGHT)${command}$(OPM_RESET). See $(OPM_HIGHLIGHT)opm help$(OPM_RESET) for a list of commands."
+        esac
+    fi
+}
 
-opm_describe jdk
-opm_describe jdk8
-opm_describe ternjs
-opm_describe TERNJS
-opm_describe nvm
-opm_describe tern
+opm_cli "$@"
+#opm_version
 
-opm_query tern
-opm_query node
-opm_query jdk
-opm_query jdk java
-opm_query JDK JAVA
+#opm_init
 
-opm_queue jdk8 git
-opm_queue ternjs
+#opm_fetch
 
-opm_install jdk10
+#opm_refresh
 
-opm_install hello
-opm_install nvm
+#opm_describe jdk
+#opm_describe jdk8
+#opm_describe ternjs
+#opm_describe TERNJS
+#opm_describe nvm
+#opm_describe tern
 
-opm_upgrade
+#opm_query tern
+#opm_query node
+#opm_query jdk
+#opm_query jdk java
+#opm_query JDK JAVA
+
+#opm_queue jdk8 git
+#opm_queue ternjs
+
+#opm_install jdk10
+
+#opm_install hello
+#opm_install nvm
+
+#opm_upgrade
 
