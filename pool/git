@@ -1,0 +1,30 @@
+# Descriptions from Debian are preferred.
+# Lower-case first letter (except when proper), no end marks.
+# Whitespace will be stripped automatically.
+Description: fast, scalable, distributed revision control system
+
+apt: git
+zypper: git
+dnf: git
+pacman: git
+portage: git
+slackpkg: git
+pkg: git
+nix: git
+apk: git
+
+npm:
+pip:
+gem:
+# Missing package managers will be autofilled as empty/missing.
+# cargo:
+go:
+cabal:
+
+flatpak:
+snap:
+appimage:
+
+# The "special" type will be ignored and autofilled by scripts that exist under
+# the /packages directory.
+# special: 

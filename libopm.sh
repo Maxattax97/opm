@@ -21,7 +21,6 @@ OPM_RESET() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0m'; fi; }
 OPM_BLINK() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[5m'; fi; }
 OPM_HIGHLIGHT() { if [ "$opm_opt_nocolor" -eq 0 ]; then printf '\033[0;94m'; fi; }
 OPM_GREP_COLORS='ms=01;94'
-# TODO: Add option for no-color mode.
 
 OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
 OPM_REPO_ROOT="https://github.com/Maxattax97/opm"
@@ -1001,6 +1000,10 @@ opm_version() {
     info "Omni Package Manager v${OPM_LIB_VERSION}"
 }
 
+opm_help() {
+    info "Available subcommands: $(OPM_HIGHLIGHT)version init fetch refresh describe query queue install upgrade$(OPM_RESET)"
+}
+
 # Based on some code contributed to Powerlevel9K
 # https://github.com/bhilburn/powerlevel9k/blob/next/functions/utilities.zsh
 opm_detect_os() {
@@ -1137,43 +1140,13 @@ opm_cli() {
                 opm_init
                 ;;
             help)
-                info "Available subcommands: $(OPM_HIGHLIGHT)version init fetch refresh describe query queue install upgrade$(OPM_RESET)"
+                opm_help
+                ;;
+            --help)
+                opm_help
                 ;;
             *)
             error "Unrecognized command: $(OPM_HIGHLIGHT)${command}$(OPM_RESET). See $(OPM_HIGHLIGHT)opm help$(OPM_RESET) for a list of commands."
         esac
     fi
 }
-
-opm_cli "$@"
-#opm_version
-
-#opm_init
-
-#opm_fetch
-
-#opm_refresh
-
-#opm_describe jdk
-#opm_describe jdk8
-#opm_describe ternjs
-#opm_describe TERNJS
-#opm_describe nvm
-#opm_describe tern
-
-#opm_query tern
-#opm_query node
-#opm_query jdk
-#opm_query jdk java
-#opm_query JDK JAVA
-
-#opm_queue jdk8 git
-#opm_queue ternjs
-
-#opm_install jdk10
-
-#opm_install hello
-#opm_install nvm
-
-#opm_upgrade
-

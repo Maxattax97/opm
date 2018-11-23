@@ -1,6 +1,6 @@
 #! /bin/sh
 
-source ../main.sh
+source ../libopm.sh
 
 opm_lookup_path="../lookup"
 opm_opt_quiet=1

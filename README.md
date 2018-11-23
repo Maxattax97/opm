@@ -10,7 +10,7 @@ OPM is also useful for distro-independent installers, especially those that migh
 ## Installation
 
 To use OPM as a library, simply `source libopm.sh` in your application.
-To use OPM as a command line tool, add `source opm.sh` to your `{bash,zsh,dash,ksh,*}rc` file. This is lazy loaded, so you don't need to worry about it slowing down your terminal.
+To use OPM as a command line tool, add `source opm` to your `{bash,zsh,dash,ksh,*}rc` file. This is lazy loaded, so you don't need to worry about it slowing down your terminal.
 
 ## Building
 
