@@ -35,6 +35,7 @@ OPM_DELIM=':'
 # Options
 opm_opt_quiet=0
 opm_opt_nocolor=0
+opm_opt_nodecor=0 # Trim off the decor.
 opm_opt_lock_sudo=1
 opm_opt_parallel=1
 opm_opt_dry=1
@@ -98,36 +99,68 @@ msg() {
 }
 
 success() {
-    msg "$(OPM_GREEN)[*]$(OPM_RESET) ${1}${2}" "${3}"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "$(OPM_GREEN)[*]$(OPM_RESET) ${1}${2}" "${3}"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 info() {
-    msg "$(OPM_BLUE)[~]$(OPM_RESET) ${1}${2}" "${3}"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "$(OPM_BLUE)[~]$(OPM_RESET) ${1}${2}" "${3}"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 warn() {
-    msg "$(OPM_YELLOW)[!]$(OPM_RESET) ${1}${2}" "${3}"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "$(OPM_YELLOW)[!]$(OPM_RESET) ${1}${2}" "${3}"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 error() {
-    msg "$(OPM_RED)$(OPM_BLINK)[X]$(OPM_RESET) ${1}${2}" "${3}"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "$(OPM_RED)$(OPM_BLINK)[X]$(OPM_RESET) ${1}${2}" "${3}"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 query() {
-    msg "$(OPM_MAGENTA)$(OPM_BLINK)[?]$(OPM_RESET) ${1}${2}" "1"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "$(OPM_MAGENTA)$(OPM_BLINK)[?]$(OPM_RESET) ${1}${2}" "1"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 dry() {
-    msg "$(OPM_MAGENTA) > $(OPM_RESET) ${1}${2}" "${3}"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "$(OPM_MAGENTA) > $(OPM_RESET) ${1}${2}" "${3}"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 none() {
-    msg "    ${1}${2}" "${3}"
+    if [ "$opm_opt_nodecor" -eq 0 ]; then
+        msg "    ${1}${2}" "${3}"
+    else
+        msg "${1}${2}" "${3}"
+    fi
 }
 
 debug() {
     if [ "$OPM_DEBUG" -ne 0 ]; then
-        msg "$(OPM_CYAN)$(OPM_BLINK)[#]$(OPM_RESET) ${1}${2}" "${3}"
+        if [ "$opm_opt_nodecor" -eq 0 ]; then
+            msg "$(OPM_CYAN)$(OPM_BLINK)[#]$(OPM_RESET) ${1}${2}" "${3}"
+        else
+            msg "${1}${2}" "${3}"
+        fi
     fi
 }
 
