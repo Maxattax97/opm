@@ -1,0 +1,7 @@
+Description: OpenJDK Development Kit (JDK)
+
+apt: openjdk-8-jdk 
+zypper: java-1_8_0-openjdk 
+dnf: java-1.8.0-openjdk 
+pacman: jdk8-openjdk 
+pkg: openjdk8 

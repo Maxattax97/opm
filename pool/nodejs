@@ -1,0 +1,4 @@
+Description: evented I/O for V8 javascript
+
+apt: nodejs 
+zypper: nodejs8 

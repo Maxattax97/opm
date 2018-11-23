@@ -1,0 +1,11 @@
+Description: C, C++ and Objective-C compiler (LLVM based)
+
+apt: clang
+zypper: clang
+dnf: clang
+pacman: clang
+portage: clang
+slackpkg: clang
+pkg: clang
+nix: clang
+apk: clang

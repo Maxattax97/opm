@@ -1,0 +1,11 @@
+Description: command line tool for transferring data with URL syntax
+
+apt: curl
+zypper: curl
+dnf: curl
+pacman: curl
+portage: curl
+slackpkg: curl
+pkg: curl
+nix: curl
+apk: curl

@@ -1,0 +1,7 @@
+Description: standard Java or Java compatible Development Kit
+
+apt: default-jdk 
+zypper: java-10-openjdk
+dnf: java-openjdk
+pacman: jdk10-openjdk 
+pkg: opnjdk10
