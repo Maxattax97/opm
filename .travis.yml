@@ -5,8 +5,8 @@ services:
 before_install:
     - $SHELL --version 2> /dev/null || dpkg -s $SHELL 2> /dev/null || which $SHELL
 install:
-    - sudo make docker
+    - make docker
 before_script:
     - bash -c "echo \"hello, world one\""
 script:
-    - sudo make docker-test
+    - make docker-test
