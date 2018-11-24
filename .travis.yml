@@ -3,14 +3,10 @@ language: generic
 services:
     - docker
 before_install:
-    - ls
     - $SHELL --version 2> /dev/null || dpkg -s $SHELL 2> /dev/null || which $SHELL
-    - sudo docker pull ubuntu
 install:
-    - sudo docker run -d --name opm_ubuntu ubuntu
+    - sudo make docker
 before_script:
     - bash -c "echo \"hello, world one\""
 script:
-    - sudo docker ps -a
-    - bash -c "echo \"hello, world two\""
-    - sudo docker rm opm_ubuntu
+    - sudo make docker-test
