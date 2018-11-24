@@ -1,14 +1,16 @@
 sudo: required
-language: python
+language: generic
 services:
     - docker
 before_install:
-    - docker pull ubuntu
+    - ls
+    - $SHELL --version 2> /dev/null || dpkg -s $SHELL 2> /dev/null || which $SHELL
+    - sudo docker pull ubuntu
 install:
-    - docker run -d --name opm_ubuntu ubuntu
+    - sudo docker run -d --name opm_ubuntu ubuntu
 before_script:
     - bash -c "echo \"hello, world one\""
 script:
-    - docker ps -a
+    - sudo docker ps -a
     - bash -c "echo \"hello, world two\""
-    - docker rm opm_ubuntu
+    - sudo docker rm opm_ubuntu
