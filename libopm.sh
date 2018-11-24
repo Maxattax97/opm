@@ -61,7 +61,7 @@ opm_os="LINUX"
 opm_init_complete=0
 opm_fetch_complete=0
 
-opm_lookup_path="./lookup"
+opm_lookup_path="./pool.db"
 
 opm_queue_index=0
 opm_queue_array=
@@ -321,8 +321,8 @@ opm_print_enabled() {
 # OPM Externals
 opm_init() {
     # Check interpretter
-    # debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
-    debug "OPM is being interpretted by :$(ps | grep "$$" | awk '{print $NF}')" # busybox compliant
+    debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
+    # debug "OPM is being interpretted by: $(file "$(which "$(ps | grep "$$" | awk '{print $NF}')")")" # busybox compliant
 
     # Probe for available package managers.
     opm_apt="$(opm_probe apt)"
@@ -343,6 +343,7 @@ opm_init() {
     opm_wget="$(opm_probe wget)"
     opm_curl="$(opm_probe curl)"
     opm_git="$(opm_probe git)"
+    opm_gzip="$(opm_probe gzip)" # Really we need gunzip, but gzip has -d flag.
 
     sum_managers="$(expr $opm_apt + $opm_dnf + $opm_dnf + $opm_zypper + \
         $opm_portage + $opm_slackpkg + $opm_nix + $opm_npm + \
@@ -806,13 +807,14 @@ opm_query() {
     search="${search%%|}"
 
     results="$(grep -iE "$search" "$opm_lookup_path")"
-
+    
     info "Results for: $*"
     if [ "$opm_opt_quiet" -eq 0 ]; then
         if [ "$opm_opt_nocolor" -eq 0 ]; then
-            echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | GREP_COLORS="${OPM_GREP_COLORS}" grep -iE --color "$search"
+            # This regex is specially crafted to allow reverse lookups; `openjdk-8-jdk` return `jdk8`.
+            echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | GREP_COLORS="${OPM_GREP_COLORS}" grep -iE --color "$search|$"
         else
-            echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | grep -iE "$search"
+            echo "$results" | awk -F';' '{ print "    " $1 "\t\t\t" $6 }' | grep -iE "$search|$"
         fi
     fi
 }

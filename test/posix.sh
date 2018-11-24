@@ -2,9 +2,13 @@
 
 . ../libopm.sh
 
-opm_lookup_path="../lookup"
+opm_lookup_path="../pool.db"
 opm_opt_quiet=1
 opm_opt_nocolor=1
+
+interpretter="$(ps h -p $$ -o args='' | cut -f1 -d' ')"
+interpretter_links_to="$(file "$(which "$interpretter")")"
+echo "Being interpretted by: $interpretter_links_to"
 
 testInit() {
     opm_init

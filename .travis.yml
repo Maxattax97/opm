@@ -2,11 +2,7 @@ sudo: required
 language: generic
 services:
     - docker
-before_install:
-    - $SHELL --version 2> /dev/null || dpkg -s $SHELL 2> /dev/null || which $SHELL
 install:
     - make docker
-before_script:
-    - bash -c "echo \"hello, world one\""
 script:
     - make docker-test

@@ -1,4 +1,4 @@
-.PHONY: test clean pool docker
+.PHONY: test clean pool docker production
 
 all: opm pool test
 
@@ -13,6 +13,14 @@ pool: pool.db.gz
 
 pool.db.gz:
 	bash ./buildPool.sh
+
+production: clean opm pool
+	cp pool.db.gz production/
+	cp pool.db production/
+	cp libopm.sh production/
+	gzip -c -9 production/libopm.sh > production/libopm.sh.gz 
+	cp opm production/
+	gzip -c -9 production/opm > production/opm.gz 
 
 test:
 	cd test/ && sh ./posix.sh

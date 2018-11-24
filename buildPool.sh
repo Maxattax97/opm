@@ -44,7 +44,7 @@ for file in ./pool/*; do
         special="%"
     fi
 
-    result="${filename};${apt}:${zypper}:${dnf}:${pacman}:${portage}:${slackpkg}:${pkg}:${nix}:${apk};${npm}:${pip}:${gem}:${cargo}:${go}:${cabal};${flatpak}:${snap}:${appimage};${special};${description}"
+    result="${filename};${apt},${zypper},${dnf},${pacman},${portage},${slackpkg},${pkg},${nix},${apk};${npm},${pip},${gem},${cargo},${go},${cabal};${flatpak},${snap},${appimage};${special};${description}"
     echo "$result" >> pool.db
 done
 
