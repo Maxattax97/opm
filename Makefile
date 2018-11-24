@@ -1,6 +1,6 @@
 .PHONY: test clean pool docker production
 
-all: opm pool test
+all: clean opm pool test
 
 opm:
 	touch opm
