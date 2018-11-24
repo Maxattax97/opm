@@ -1,6 +1,6 @@
 #! /bin/sh
 
-source ../libopm.sh
+. ../libopm.sh
 
 opm_lookup_path="../lookup"
 opm_opt_quiet=1
@@ -28,4 +28,4 @@ testQueue() {
     opm_queue
 }
 
-source ./shunit2
+. ./shunit2

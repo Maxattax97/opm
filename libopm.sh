@@ -321,7 +321,8 @@ opm_print_enabled() {
 # OPM Externals
 opm_init() {
     # Check interpretter
-    debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
+    # debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
+    debug "OPM is being interpretted by :$(ps | grep "$$" | awk '{print $NF}')" # busybox compliant
 
     # Probe for available package managers.
     opm_apt="$(opm_probe apt)"
@@ -1150,3 +1151,4 @@ opm_cli() {
         esac
     fi
 }
+

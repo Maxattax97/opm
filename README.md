@@ -1,4 +1,6 @@
 # 🌺 Omni Package Manager
+[![Build Status](https://travis-ci.com/Maxattax97/opm.svg?branch=master)](https://travis-ci.com/Maxattax97/opm)
+==========
 
 Initialized `opm`, pronounced like the magical, fix-it-all plant "Opium" 🌺.
 

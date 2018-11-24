@@ -8,5 +8,5 @@ nodejs10;%:%:%:%:%:%:%:%:%;%:%:%:%:%:%;%:%:%;%;evented I/O for V8 javascript
 nodejs6;%:%:%:%:%:%:%:%:%;%:%:%:%:%:%;%:%:%;%;evented I/O for V8 javascript
 nodejs8;nodejs:nodejs8:%:%:%:%:%:%:%;%:%:%:%:%:%;%:%:%;%;evented I/O for V8 javascript
 nodejs;nodejs:nodejs8:%:%:%:%:%:%:%;%:%:%:%:%:%;%:%:%;%;evented I/O for V8 javascript
-nvm;%:%:%:%:%:%:%:%:%;%:%:%:%:%:%;%:%:%;%;simple bash script to manage multiple active node.js versions
+nvm;%:%:%:%:%:%:%:%:%;%:%:%:%:%:%;%:%:%;!;simple bash script to manage multiple active node.js versions
 ternjs;%:%:%:%:%:%:%:%:%;ternjs:%:%:%:%:%;%:%:%;%;a JavaScript code analyzer for deep, cross-editor language support
