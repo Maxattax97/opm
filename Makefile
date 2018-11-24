@@ -23,13 +23,14 @@ docker:
 	sudo docker build -t opm_ubuntu -f docker/ubuntu/Dockerfile .
 	sudo docker build -t opm_fedora -f docker/fedora/Dockerfile .
 	sudo docker build -t opm_opensuse -f docker/opensuse/Dockerfile .
-	sudo docker build -t opm_alpine -f docker/alpine/Dockerfile .
+	# Disabled due to various errors:
+	# sudo docker build -t opm_alpine -f docker/alpine/Dockerfile .
 
 docker-test:
 	sudo docker run opm_ubuntu /bin/sh -c "make test"
 	sudo docker run opm_fedora /bin/sh -c "make test"
 	sudo docker run opm_opensuse /bin/sh -c "make test"
-	sudo docker run opm_alpine /bin/sh -c "make test"
+	# sudo docker run opm_alpine /bin/sh -c "make test"
 
 clean:
 	rm -f opm pool.db pool.db.gz
