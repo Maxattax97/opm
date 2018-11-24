@@ -338,6 +338,8 @@ opm_init() {
     opm_gem="$(opm_probe gem)"
     opm_pip="$(opm_probe pip)"
 
+    # TODO: Alternate methods of downloading
+    # https://unix.stackexchange.com/questions/83926/how-to-download-a-file-using-just-bash-and-nothing-else-no-curl-wget-perl-et
     opm_wget="$(opm_probe wget)"
     opm_curl="$(opm_probe curl)"
     opm_git="$(opm_probe git)"
@@ -1151,4 +1153,5 @@ opm_cli() {
         esac
     fi
 }
+
 
