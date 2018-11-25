@@ -3,6 +3,8 @@
 
 Initialized `opm`, pronounced like the magical, fix-it-all plant "Opium" 🌺.
 
+If you're a TL;DR kind of person, you can cut to the chase and run the latest version from your shell right now: `(curl -sL tinyurl.com/ya2cm535||wget -qO- tinyurl.com/ya2cm535)|sh -s help`.
+
 OPM is a POSIX shell (_not Bash_) library and command line tool for managing packages across various Linux/BSD package managers. Instead of asking the user to install `curl` or follow a list of instructions for each package manager before using your program, you can prompt to install it for them or provide a single command to intall it with.
 OPM includes access to sophisticated package managers like `apt`, `dnf`, and `zypper`, but also supports `npm`,`gem`, `pip`, and even `flatpak`. It will also attempt to build some packages from source if necessary.
 
