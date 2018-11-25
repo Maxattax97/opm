@@ -6,6 +6,8 @@ if [ -n "$OPM_LIB_VERSION" ]; then
     exit
 fi
 
+# %OPM_SPLICE_HEAD_MARKER%
+
 # Constants
 # TODO: Implement sem-ver based system for requeusting a manual update from the user.
 export OPM_LIB_VERSION="0.0.1"
@@ -1176,4 +1178,5 @@ opm_cli() {
     fi
 }
 
+# %OPM_SPLICE_FOOT_MARKER%
 

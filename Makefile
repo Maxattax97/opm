@@ -1,20 +1,16 @@
-.PHONY: test test-live clean pool docker production
+.PHONY: test test-live clean pool docker production lint
 
 all: clean opm pool test
 
 opm:
 	@echo "Packaging OPM for command line use ..."
-	@touch opm
-	@cat libopm.sh > opm
-	@echo "" >> opm
-	@printf "opm_cli \$$@" >> opm
-	@chmod +x opm
+	@cd scripts/ && bash ./buildCli.sh
 
 pool: pool.db.gz
 
 pool.db.gz:
 	@echo "Building pool database ..."
-	@bash ./buildPool.sh
+	@cd scripts/ && bash ./buildPool.sh
 
 production: clean opm pool
 	@echo "Creating production files ..."
@@ -22,8 +18,14 @@ production: clean opm pool
 	@cp pool.db production/
 	@cp libopm.sh production/
 	@gzip -c -9 production/libopm.sh > production/libopm.sh.gz 
+	@echo "Minifying OPM CLI ..."
+	@cd scripts/ && perl ./minify.pl -i ../opm -o ../opm.min -V OpM -C -F
+	@mv opm.min opm
 	@cp opm production/
 	@gzip -c -9 production/opm > production/opm.gz 
+
+lint:
+	shellcheck --shell=sh libopm.sh
 
 test:
 	@echo "Performing POSIX compliance tests ..."

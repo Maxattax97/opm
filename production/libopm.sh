@@ -1,10 +1,12 @@
-#! /bin/dash
+#! /bin/sh
 
 if [ -n "$OPM_LIB_VERSION" ]; then
     # Prevent source loops
     echo "Aborting excessive source"
     exit
 fi
+
+# %OPM_SPLICE_HEAD_MARKER%
 
 # Constants
 # TODO: Implement sem-ver based system for requeusting a manual update from the user.
@@ -211,17 +213,30 @@ opm_dry_exec() {
 }
 
 opm_dry_elevated_exec() {
-    if [ "$opm_opt_dry" -ne 0 ]; then
-        dry "sudo $*"
+    if [ "$(id -u)" != 0 ]; then
+        if [ "$opm_opt_dry" -ne 0 ]; then
+            if [ "$opm_sudo" -ne 0 ]; then
+                dry "sudo $*"
+            else
+                dry "su root -c \"$*\""
+            fi
+        else
+            if [ "$opm_sudo" -ne 0 ]; then
+                eval sudo "$@"
+            else
+                error "This operation cannot be performed on a system without sudo. Please either execute this script as root or setup sudo."
+                opm_abort
+            fi
+        fi
     else
-        eval sudo "$@"
+        eval "$@"
     fi
 }
 
 # OPM Internals
 opm_abort() {
     error "Aborting ..."
-    exit
+    exit 1
 }
 
 opm_probe() {
@@ -234,15 +249,20 @@ opm_probe() {
 
 opm_elevate() {
     if [ "$(id -u)" != 0 ]; then
-        if silence sudo -n -v; then
-            sudo "$@"
-        else
-            info "Attempting to elevate to root ..."
-            if [ -z "$1" ]; then
-                sudo -v
-            else
+        if [ "$opm_sudo" -ne 0 ]; then
+            if silence sudo -n -v; then
                 sudo "$@"
+            else
+                info "Attempting to elevate to root ..."
+                if [ -z "$1" ]; then
+                    sudo -v
+                else
+                    sudo "$@"
+                fi
             fi
+        else
+            error "This operation cannot be performed on a system without sudo. Please either execute this script as root or setup sudo."
+            opm_abort
         fi
     fi
 }
@@ -321,8 +341,8 @@ opm_print_enabled() {
 # OPM Externals
 opm_init() {
     # Check interpretter
-    # debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
-    debug "OPM is being interpretted by :$(ps | grep "$$" | awk '{print $NF}')" # busybox compliant
+    debug "OPM is being interpretted by: $(ps h -p $$ -o args='' | cut -f1 -d' ')"
+    # debug "OPM is being interpretted by: $(file "$(which "$(ps | grep "$$" | awk '{print $NF}')")")" # busybox compliant
 
     # Probe for available package managers.
     opm_apt="$(opm_probe apt)"
@@ -343,6 +363,8 @@ opm_init() {
     opm_wget="$(opm_probe wget)"
     opm_curl="$(opm_probe curl)"
     opm_git="$(opm_probe git)"
+    
+    opm_sudo="$(opm_probe sudo)" # Permissions get much more complicated without this.
     opm_gzip="$(opm_probe gzip)" # Really we need gunzip, but gzip has -d flag.
 
     sum_managers="$(expr $opm_apt + $opm_dnf + $opm_dnf + $opm_zypper + \
@@ -429,7 +451,7 @@ opm_install() {
             args="$args --quiet"
         fi
         if [ "$opm_opt_noconfirm" -ne 0 ]; then
-            args="$args --noconfirm"
+            args="$args -y"
         fi
 
         opm_dry_elevated_exec dnf install $args $opm_dnf_queue_string
@@ -447,7 +469,7 @@ opm_install() {
             args="$args --non-interactive"
         fi
 
-        opm_dry_elevated_exec zypper install $args $opm_zypper_queue_string
+        opm_dry_elevated_exec zypper $args install $opm_zypper_queue_string
         check "Zypper packages installed." "Zypper failed to install packages."
     fi
 
@@ -724,7 +746,7 @@ opm_upgrade() {
             args="$args --quiet"
         fi
         if [ "$opm_opt_noconfirm" -ne 0 ]; then
-            args="$args --noconfirm"
+            args="$args -y"
         fi
 
         opm_dry_elevated_exec dnf $args upgrade
@@ -1156,4 +1178,5 @@ opm_cli() {
     fi
 }
 
+# %OPM_SPLICE_FOOT_MARKER%
 

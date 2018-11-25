@@ -1,11 +1,11 @@
 #!/bin/bash
 
-rm -f pool.db pool.db.gz
+rm -f ../pool.db ../pool.db.gz
 
 # $1: filename
 # $2: key
 parse() {
-    result="$(grep -io "^${2}.*" "./pool/${1}" | sed -e "s/${2}://gI" | sed -e 's/^\s*//g' | sed -e 's/\s*$//g')"
+    result="$(grep -io "^${2}.*" "../pool/${1}" | sed -e "s/${2}://gI" | sed -e 's/^\s*//g' | sed -e 's/\s*$//g')"
     if [[ -z "$result" ]]; then
         echo "%"
     else
@@ -13,7 +13,7 @@ parse() {
     fi
 }
 
-for file in ./pool/*; do
+for file in ../pool/*; do
     filename="$(sed -e 's|^.*/||g' <<< "$file")"
     echo "Parsing $filename ..."
     description="$(parse "$filename" "description")"
@@ -38,19 +38,19 @@ for file in ./pool/*; do
     snap="$(parse "$filename" "snap")"
     appimage="$(parse "$filename" "appimage")"
 
-    if [[ -s "./packages/source/${filename}" ]]; then
+    if [[ -s "../packages/source/${filename}" ]]; then
         special="!"
     else
         special="%"
     fi
 
     result="${filename};${apt},${zypper},${dnf},${pacman},${portage},${slackpkg},${pkg},${nix},${apk};${npm},${pip},${gem},${cargo},${go},${cabal};${flatpak},${snap},${appimage};${special};${description}"
-    echo "$result" >> pool.db
+    echo "$result" >> ../pool.db
 done
 
 echo "Organizing ..."
-sort -u pool.db -o pool.db
+sort -u ../pool.db -o ../pool.db
 echo "Compressing ..."
-gzip -c -9 pool.db > pool.db.gz
+gzip -c -9 ../pool.db > ../pool.db.gz
 
 echo "Pool database compiled."
