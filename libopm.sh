@@ -1,4 +1,4 @@
-#! /bin/dash
+#! /bin/sh
 
 if [ -n "$OPM_LIB_VERSION" ]; then
     # Prevent source loops

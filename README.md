@@ -10,12 +10,12 @@ OPM is also useful for distro-independent installers, especially those that migh
 
 ## Installation
 
-To use OPM as a library, simply `source libopm.sh` in your application.
-To use OPM as a command line tool, add `source opm` to your `{bash,zsh,dash,ksh,*}rc` file. This is lazy loaded, so you don't need to worry about it slowing down your terminal.
+To use OPM as a library, simply source `. libopm.sh` into your application.
+To use OPM as a command line tool, add `. opm` to your `{bash,zsh,dash,ksh,*}rc` file. This is lazy loaded, so you don't need to worry about it slowing down your terminal.
 
 ## Building
 
-To build the latest `libopm.sh` and `opm.sh`:
+To build the latest `libopm.sh` and `opm`:
  1. Clone the repo `git clone https://github.com/maxattax97/opm`
  2. Execute `make`
 
@@ -23,13 +23,14 @@ This process simply stitches the shell files together into a single, more portab
 
 ## Testing
 
-Docker images will be used for testing, but these are not yet implemented.
+Docker images are used to test OPM's functionality across a variety of different Linux distributions in extremely minimal environments.
+We use [Travis CI](https://travis-ci.com/Maxattax97/opm) to extensively test OPM on every commit. 
 
 ## Contributing & Mechanics
 
-OPM functions very simply. It uses a lookup table to find equivalent packages across different package managers. It will prioritize system-specific (or _primary_) managers first, then try to install from _secondary_ package managers like `npm`. If a secondary package manager is not availbe, OPM will do it's best to install it for the user. The same follows for _tertiary_ package managers like Flatpak.
+OPM functions very simply. It uses a custom database to find equivalent packages across different package managers. It will prioritize system-specific (or _primary_) managers first, then try to install from _secondary_ package managers like `npm`. If a secondary package manager is not availbe, OPM will do it's best to install it for the user. The same follows for _tertiary_ package managers like Flatpak.
 
-Long story short, if you need to install a particular package and it's not available, add an entry to the `lookup` file. Follow the format specified, and make a pull request.
+Long story short, if you need to install a particular package and it's not available, add an entry in the `pool/` directory. Follow the [example format](https://github.com/Maxattax97/opm/blob/master/pool/git), and make a pull request.
 
 ## Command Line
 
