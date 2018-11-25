@@ -2,7 +2,15 @@ sudo: required
 language: generic
 services:
     - docker
+matrix:
+    include:
+        - name: "Ubuntu"
+          env: TEST_SUITE=ubuntu
+        - name: "Fedora"
+          env: TEST_SUITE=fedora
+        - name: "OpenSUSE"
+          env: TEST_SUITE=opensuse
 install:
-    - make docker
+    - make travis-install 
 script:
-    - make docker-test
+    - make travis-script 

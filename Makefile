@@ -41,5 +41,11 @@ docker-test:
 	sudo docker run opm_opensuse /bin/sh -c "make test-live"
 	# sudo docker run opm_alpine /bin/sh -c "make test-live"
 
+travis-install: all
+	sudo docker build -t opm_${TEST_SUITE} -f docker/${TEST_SUITE}/Dockerfile .
+
+travis-script:
+	sudo docker run opm_${TEST_SUITE} /bin/sh -c "make test-live"
+
 clean:
 	rm -f opm pool.db pool.db.gz
