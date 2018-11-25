@@ -56,7 +56,8 @@ command [ "`echo -e test`" = '-e test' ] && __SHUNIT_CMD_ECHO_ESC='echo'
 SHUNIT_CMD_EXPR=${SHUNIT_CMD_EXPR:-${__SHUNIT_CMD_EXPR}}
 
 # Enable color output. Options are 'never', 'always', or 'auto'.
-SHUNIT_COLOR=${SHUNIT_COLOR:-auto}
+# SHUNIT_COLOR=${SHUNIT_COLOR:-auto}
+SHUNIT_COLOR=${SHUNIT_COLOR:-none}
 
 # Specific shell checks.
 if command [ -n "${ZSH_VERSION:-}" ]; then

@@ -1,4 +1,4 @@
-.PHONY: test clean pool docker production
+.PHONY: test test-live clean pool docker production
 
 all: clean opm pool test
 
@@ -24,10 +24,11 @@ production: clean opm pool
 
 test:
 	cd test/ && sh ./posix.sh
-	cd test/ && sh ./pass.sh
-	# cd test/ && sh ./fail.sh
 
-docker:
+test-live:
+	cd test/ && sh ./live.sh
+
+docker: all
 	sudo docker build -t opm_ubuntu -f docker/ubuntu/Dockerfile .
 	sudo docker build -t opm_fedora -f docker/fedora/Dockerfile .
 	sudo docker build -t opm_opensuse -f docker/opensuse/Dockerfile .
@@ -35,10 +36,10 @@ docker:
 	# sudo docker build -t opm_alpine -f docker/alpine/Dockerfile .
 
 docker-test:
-	sudo docker run opm_ubuntu /bin/sh -c "make test"
-	sudo docker run opm_fedora /bin/sh -c "make test"
-	sudo docker run opm_opensuse /bin/sh -c "make test"
-	# sudo docker run opm_alpine /bin/sh -c "make test"
+	sudo docker run opm_ubuntu /bin/sh -c "make test-live"
+	sudo docker run opm_fedora /bin/sh -c "make test-live"
+	sudo docker run opm_opensuse /bin/sh -c "make test-live"
+	# sudo docker run opm_alpine /bin/sh -c "make test-live"
 
 clean:
 	rm -f opm pool.db pool.db.gz

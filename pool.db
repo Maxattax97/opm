@@ -1,0 +1,12 @@
+clang;clang,clang,clang,clang,clang,clang,clang,clang,clang;%,%,%,%,%,%;%,%,%;%;C, C++ and Objective-C compiler (LLVM based)
+curl;curl,curl,curl,curl,curl,curl,curl,curl,curl;%,%,%,%,%,%;%,%,%;%;command line tool for transferring data with URL syntax
+git;git,git,git,git,git,git,git,git,git;%,%,%,%,%,%;%,%,%;%;fast, scalable, distributed revision control system
+hello;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;very basic hello world installer
+jdk10;default-jdk,java-10-openjdk,java-openjdk,jdk10-openjdk,%,%,opnjdk10,%,%;%,%,%,%,%,%;%,%,%;%;standard Java or Java compatible Development Kit
+jdk8;openjdk-8-jdk,java-1_8_0-openjdk,java-1.8.0-openjdk,jdk8-openjdk,%,%,openjdk8,%,%;%,%,%,%,%,%;%,%,%;%;OpenJDK Development Kit (JDK)
+nodejs10;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;%;evented I/O for V8 javascript
+nodejs6;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;%;evented I/O for V8 javascript
+nodejs8;nodejs,nodejs8,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;%;evented I/O for V8 javascript
+nodejs;nodejs,nodejs8,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;%;evented I/O for V8 javascript
+nvm;%,%,%,%,%,%,%,%,%;%,%,%,%,%,%;%,%,%;!;simple bash script to manage multiple active node.js versions
+ternjs;%,%,%,%,%,%,%,%,%;ternjs,%,%,%,%,%;%,%,%;%;a JavaScript code analyzer for deep, cross-editor language support
