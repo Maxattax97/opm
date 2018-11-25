@@ -744,7 +744,7 @@ opm_upgrade() {
             args="$args --quiet"
         fi
         if [ "$opm_opt_noconfirm" -ne 0 ]; then
-            args="$args --noconfirm"
+            args="$args -y"
         fi
 
         opm_dry_elevated_exec dnf $args upgrade

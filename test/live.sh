@@ -22,6 +22,10 @@ testInstallGit() {
     assertEquals "Git was not installed" "0" "$?"
 }
 
+testUpgrade() {
+    opm_upgrade
+}
+
 oneTimeSetUp() {
     . ../libopm.sh
 
