@@ -27,6 +27,11 @@ OPM_GREP_COLORS='ms=01;94'
 OPM_REPO_RAW_ROOT="https://raw.githubusercontent.com/Maxattax97/opm"
 OPM_REPO_ROOT="https://github.com/Maxattax97/opm"
 
+OPM_SYSTEM_BIN="/usr/local/bin/" # System-wide binaries go here.
+OPM_SYSTEM_ROOT="/usr/local/share/opm/" # System-wide data for the binaries goes here.
+OPM_USER_BIN="${HOME}/.local/bin/" # User-only binaries go here.
+OPM_USER_ROOT="${HOME}/.local/share/opm/" # User-only data for user binaries go here.
+
 OPM_DEFAULT_NODE="node"
 OPM_DEFAULT_PYTHON="python"
 OPM_DEFAULT_RUBY="ruby"
@@ -179,6 +184,11 @@ check() {
 
 silence() {
     eval "$@" > /dev/null 2>&1
+}
+
+function_exists() {
+    type $1 | grep -q "shell function"
+    echo "$?"
 }
 
 opm_confirm_code=2
@@ -609,8 +619,10 @@ opm_install_special() {
 
             if [ "$opm_confirm_code" -ne 0 ]; then
                 info "Beginning to install $(OPM_HIGHLIGHT)$1$(OPM_RESET) ..."
-                chmod +x /tmp/OPM_INSTALL
-                opm_elevate /tmp/OPM_INSTALL
+                # chmod +x /tmp/OPM_INSTALL
+                . /tmp/OPM_INSTALL
+                opm_pkg_install
+                # opm_elevate /tmp/OPM_INSTALL
                 check "Installation successful." "Installation failed."
                 break_loop=1;
             else

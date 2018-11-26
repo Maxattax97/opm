@@ -20,16 +20,18 @@ production: clean opm pool
 	@gzip -c -9 production/libopm.sh > production/libopm.sh.gz 
 	@echo "Minifying OPM CLI ..."
 	@cd scripts/ && perl ./minify.pl -i ../opm -o ../opm.min -V OpM -C -F
-	@mv opm.min opm
-	@cp opm production/
+	@mv opm.min production/opm
+	@chmod +x production/opm
 	@gzip -c -9 production/opm > production/opm.gz 
 
 lint:
-	shellcheck --shell=sh libopm.sh
+	@shellcheck --shell=sh libopm.sh
 
 test:
 	@echo "Performing POSIX compliance tests ..."
 	@cd test/ && sh ./posix.sh
+	@echo "Performing command line tests ..."
+	@cd test/ && sh ./cli.sh
 
 test-live:
 	@echo "Performing live tests ..."

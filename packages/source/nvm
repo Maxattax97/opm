@@ -1,9 +1,42 @@
-#!/bin/bash
+#!/bin/sh
 
-if [[ "$opm_wget" -eq 1 ]]; then
-    wget -qO- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-elif [[ "$opm_curl" -eq 1 ]]; then
-    curl -o- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-fi
+# Optional. Performed before every other function, if implemented.
+# opm_pkg_prepare() {
+#
+# }
 
-info "Please open a fresh terminal in order to use nvm."
+# Mandatory. Installs the software.
+opm_pkg_install() {
+    if [ "$opm_wget" -eq 1 ]; then
+        wget -qO- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+    elif [ "$opm_curl" -eq 1 ]; then
+        curl -o- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+    fi
+
+    info "Please open a fresh terminal in order to use nvm."
+}
+
+# Mandatory. Uninstalls the software. This should be backwards-compatible.
+opm_pkg_remove() {
+    if [ -n "$NVM_DIR" ] && [ -d "$NVM_DIR" ]; then
+        rm -rf "$NVM_DIR"
+    elif [ -d "${HOME}/.nvm" ]; then
+        rm -rf "${HOME}/.nvm"
+    fi
+}
+
+# Optional. Upgrades the software to the latest version.
+opm_pkg_upgrade() {
+    remove
+    install
+}
+
+# Optional. Verifies the integrity of the software by some measure.
+opm_pkg_check() {
+    if [ -n "$NVM_DIR" ] && [ -d "$NVM_DIR" ] || [ -d "${HOME}/.nvm" ]; then
+        return 0
+    else
+        error "NVM failed to install"
+        return 1
+    fi
+}

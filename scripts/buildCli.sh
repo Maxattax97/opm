@@ -40,6 +40,4 @@ if [ "\$sourced" -eq 0 ]; then
 fi
 EOF
 
-# perl minify.pl -i ../opm -o ../opm.min -V OpM -C -F
-
 chmod +x ../opm

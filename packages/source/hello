@@ -1,7 +1,13 @@
-#!/bin/bash
+#!/bin/sh
 
-echo "Hello, world"
-touch /tmp/hello_install
-echo "some data" > /tmp/hello_install
-echo "it is $(date)" > /tmp/hello_install
-echo "Installation completed"
+opm_pkg_install() {
+    echo "Hello, world"
+    touch /tmp/hello_install
+    echo "some data" > /tmp/hello_install
+    echo "it is $(date)" > /tmp/hello_install
+    echo "Installation completed"
+}
+
+opm_pkg_remove() {
+    rm -f /tmp/hello_install
+}
