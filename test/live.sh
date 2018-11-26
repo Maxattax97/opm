@@ -22,6 +22,14 @@ testInstallGit() {
     assertEquals "Git was not installed" "0" "$?"
 }
 
+testInstallNVM() {
+    ls "${HOME}/.nvm"
+    assertNotEquals "NVM is already installed" "0" "$?"
+    opm_install nvm 
+    ls "${HOME}/.nvm"
+    assertEquals "NVM was not installed" "0" "$?"
+}
+
 testUpgrade() {
     opm_upgrade
 }

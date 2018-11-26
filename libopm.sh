@@ -191,6 +191,7 @@ function_exists() {
     echo "$?"
 }
 
+opm_confirm_override=0
 opm_confirm_code=2
 opm_confirm() {
     continue=0
@@ -200,17 +201,23 @@ opm_confirm() {
         else
             query "Continue? [y/N] "
         fi
-        read -r -p "" response
-        case "$response" in
-            [yY][eE][sS]|[yY])
-                continue=1
-                opm_confirm_code=1
-                ;;
-            [nN][oO]|[nN])
-                continue=1
-                opm_confirm_code=0
-                ;;
-        esac
+        if [ "$opm_opt_noconfirm" -ne 0 ]; then
+            # TODO: Add a display of character to the user so they know what's going on?
+            continue=1
+            opm_confirm_code="$opm_confirm_override"
+        else
+            read -r -p "" response
+            case "$response" in
+                [yY][eE][sS]|[yY])
+                    continue=1
+                    opm_confirm_code=1
+                    ;;
+                [nN][oO]|[nN])
+                    continue=1
+                    opm_confirm_code=0
+                    ;;
+            esac
+        fi
     done
 }
 
@@ -346,6 +353,33 @@ opm_print_enabled() {
             printf "$(OPM_YELLOW)${2}$(OPM_RESET) "
         fi
     fi
+}
+
+# When system utilities are not available, we can download files with just
+# /dev/tcp and some shell. Not preferred.
+opm_shell_dl() {
+    read proto server path <<< "${1//"/"/ }"
+    DOC=/${path// //}
+    HOST=${server//:*}
+    PORT=${server//*:}
+    [ x"${HOST}" = x"${PORT}" ] && PORT=80
+
+    exec 3<>/dev/tcp/${HOST}/$PORT
+
+    # send request
+    echo -en "GET ${DOC} HTTP/1.0\r\nHost: ${HOST}\r\n\r\n" >&3
+
+    # read the header, it ends in a empty line (just CRLF)
+    while IFS= read -r line ; do 
+        [[ "$line" == $'\r' ]] && break
+    done <&3
+
+    # read the data
+    nul='\0'
+    while IFS= read -d '' -r x || { nul=""; [ -n "$x" ]; }; do 
+        printf "%s$nul" "$x"
+    done <&3
+    exec 3>&-
 }
 
 # OPM Externals
@@ -615,6 +649,7 @@ opm_install_special() {
                 cat /tmp/OPM_INSTALL
             fi
 
+            opm_confirm_override=1
             opm_confirm "Continue installing $(OPM_HIGHLIGHT)$1$(OPM_RESET)?"
 
             if [ "$opm_confirm_code" -ne 0 ]; then
@@ -631,6 +666,7 @@ opm_install_special() {
             fi
         else
             error "Failed to download the installer script for $(OPM_HIGHLIGHT)$1$(OPM_RESET)"
+            opm_confirm_override=0
             opm_confirm "Retry?"
             if [ "$opm_confirm_code" -eq 0 ]; then
                 break_loop=1;
