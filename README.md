@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/Maxattax97/opm.svg?branch=master)](https://travis-ci.com/Maxattax97/opm)
+[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=WZTKFRNMCRK8C&item_name=Supporting+libre+software+development.&currency_code=USD&source=url)
 # 🌺 Omni Package Manager
 
 Initialized `opm`, pronounced like the magical, fix-it-all plant "Opium" 🌺.
@@ -29,7 +30,7 @@ This process simply stitches the shell files together into a single, more portab
 ## Testing
 
 Docker images are used to test OPM's functionality across a variety of different Linux distributions in extremely minimal environments.
-We use [Travis CI](https://travis-ci.com/Maxattax97/opm) to extensively test OPM on every commit. 
+We use [Travis CI](https://travis-ci.com/Maxattax97/opm) to extensively test OPM on every commit.
 
 ## Contributing & Mechanics
 
@@ -117,4 +118,3 @@ To be implemented.
 ## License
 
 BSD 3-Clause
-
